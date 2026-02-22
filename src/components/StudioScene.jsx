@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid } from "@react-three/drei";
+import { OrbitControls, Grid, Edges } from "@react-three/drei";
 
 function colorToHex(name) {
   switch (name) {
@@ -33,7 +33,7 @@ function groundPointFromRay(ray) {
   return { x: o.x + d.x * t, z: o.z + d.z * t };
 }
 
-function Blocks({ objects, selectedId, tool, onObjectClick, onMove, snapStep, draggingId, setDraggingId }) {
+function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId }) {
   // NOTE: we support both (x,z) and (px,py) so we don't break earlier data
   const mapped = useMemo(() => {
     return (objects || []).map((o) => {
@@ -48,6 +48,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMove, snapStep, dr
     <>
       {mapped.map((o) => {
         const isSel = o.id === selectedId;
+        const isHover = o.id === hoverId;
 
         const w = Number(o.w || 1);
         const h = Number(o.h || 1);
@@ -58,7 +59,16 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMove, snapStep, dr
         return (
           <mesh
             key={o.id}
-            position={[o._x, h / 2, o._z]}
+            position={[o._x, (h / 2) + (Number(o.y || 0)), o._z]}
+            rotation={[0, (Number(o.rotY || 0) * Math.PI) / 180, 0]}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              setHoverId?.(o.id);
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              setHoverId?.((prev) => (prev === o.id ? null : prev));
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
 
@@ -67,6 +77,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMove, snapStep, dr
 
               // Start dragging only when Move tool is active
               if (tool === "move") {
+                onMoveStart?.(o.id);
                 setDraggingId(o.id);
                 try {
                   e.target?.setPointerCapture?.(e.pointerId);
@@ -103,8 +114,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMove, snapStep, dr
             <boxGeometry args={[w, h, d]} />
             <meshStandardMaterial
               color={baseColor}
-              emissive={isSel ? "#111111" : "#000000"}
-              emissiveIntensity={isSel ? 0.9 : 0}
+              emissive={isSel ? "#111111" : isHover ? "#111111" : "#000000"}
+              emissiveIntensity={isSel ? 0.9 : isHover ? 0.22 : 0}
               roughness={0.8}
               metalness={0.05}
             />
@@ -121,10 +132,12 @@ export default function StudioScene({
   tool,
   onPlaceAt,
   onObjectClick,
+  onMoveStart,
   onMove,
   snapStep = 0.5,
 }) {
   const [draggingId, setDraggingId] = useState(null);
+  const [hoverId, setHoverId] = useState(null);
 
   return (
     <div className="h-full w-full">
@@ -180,10 +193,13 @@ export default function StudioScene({
           selectedId={selectedId}
           tool={tool}
           onObjectClick={onObjectClick}
+          onMoveStart={onMoveStart}
           onMove={onMove}
           snapStep={snapStep}
           draggingId={draggingId}
           setDraggingId={setDraggingId}
+          hoverId={hoverId}
+          setHoverId={setHoverId}
         />
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
