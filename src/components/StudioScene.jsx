@@ -85,12 +85,36 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
                 onMoveStart?.(o.id);
                 setDraggingId(o.id);
                 try {
-                  e.target?.setPointerCapture?.(e.pointerId);
+                  e.nativeEvent?.target?.setPointerCapture?.(e.pointerId);
                 } catch {
                   // ignore if not supported
                 }
               }
             }}
+          onPointerMove={(e) => {
+            if (tool !== "move") return;
+            if (!draggingId) return;
+            e.stopPropagation();
+            const p = e.point;
+            const x0 = snap(p.x, snapStep);
+            const z0 = snap(p.z, snapStep);
+            const margin = 0.25;
+            const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+            const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+            onMove?.(draggingId, nx, nz);
+          }}
+          onPointerUp={(e) => {
+            if (tool !== "move") return;
+            if (!draggingId) return;
+            e.stopPropagation();
+            try {
+              e.nativeEvent?.target?.releasePointerCapture?.(e.pointerId);
+            } catch {}
+            setDraggingId(null);
+          }}
+          onPointerCancel={() => {
+            if (draggingId) setDraggingId(null);
+          }}
             onPointerMove={(e) => {
               if (tool !== "move") return;
               if (draggingId !== o.id) return;
