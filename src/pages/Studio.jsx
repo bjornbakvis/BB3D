@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Box } from "lucide-react";
 import StudioScene from "../components/StudioScene.jsx";
 
@@ -21,6 +21,84 @@ export default function Studio() {
   const [objects, setObjects] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
 
+  // Undo/Redo (A)
+  const undoStackRef = useRef([]); // stack of {objects, selectedId}
+  const redoStackRef = useRef([]); // stack of {objects, selectedId}
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  function deepClone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  function pushUndoSnapshot(nextRedoClear = true) {
+    // Store current state before a change
+    undoStackRef.current.push({
+      objects: deepClone(objects),
+      selectedId,
+    });
+    if (nextRedoClear) redoStackRef.current = [];
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(redoStackRef.current.length > 0);
+  }
+
+  function undo() {
+    const prev = undoStackRef.current.pop();
+    if (!prev) return;
+    // Move current into redo
+    redoStackRef.current.push({
+      objects: deepClone(objects),
+      selectedId,
+    });
+    setObjects(prev.objects);
+    setSelectedId(prev.selectedId ?? null);
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(redoStackRef.current.length > 0);
+  }
+
+  function redo() {
+    const nxt = redoStackRef.current.pop();
+    if (!nxt) return;
+    // Move current into undo
+    undoStackRef.current.push({
+      objects: deepClone(objects),
+      selectedId,
+    });
+    setObjects(nxt.objects);
+    setSelectedId(nxt.selectedId ?? null);
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(redoStackRef.current.length > 0);
+  }
+
+  // Keyboard shortcuts: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y
+  useEffect(() => {
+    function onKeyDown(e) {
+      const key = (e.key || "").toLowerCase();
+      const isMac = /mac/i.test(navigator.platform || "");
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (!mod) return;
+
+      if (key === "z" && e.shiftKey) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (key === "z") {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if (key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [objects, selectedId]);
+
   // Default “block” dat we plaatsen
   const defaultBlock = useMemo(
     () => ({
@@ -28,6 +106,9 @@ export default function Studio() {
       h: 0.9,
       d: 0.6,
       color: "Stone",
+      y: 0,
+      rotY: 0, // degrees
+
     }),
     []
   );
@@ -38,6 +119,7 @@ export default function Studio() {
   );
 
   function newProject() {
+    pushUndoSnapshot();
     setProjectName("Nieuw ontwerp");
     setObjects([]);
     setSelectedId(null);
@@ -79,6 +161,7 @@ export default function Studio() {
     e.stopPropagation();
 
     if (tool === "delete") {
+      pushUndoSnapshot();
       setObjects((prev) => prev.filter((o) => o.id !== id));
       if (selectedId === id) setSelectedId(null);
       return;
@@ -89,6 +172,7 @@ export default function Studio() {
 
   function updateSelected(patch) {
     if (!selectedObj) return;
+    pushUndoSnapshot();
     setObjects((prev) =>
       prev.map((o) => (o.id === selectedObj.id ? { ...o, ...patch } : o))
     );
@@ -96,6 +180,7 @@ export default function Studio() {
 
   function handlePlaceAt(x, z) {
     if (tool !== "place") return;
+    pushUndoSnapshot();
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     // keep a lightweight 0..1 mapping too, so this stays responsive-friendly later
@@ -115,6 +200,11 @@ export default function Studio() {
     setObjects((prev) => [...prev, newObj]);
     setSelectedId(id);
   }
+  function handleMoveStart(id) {
+    if (tool !== "move") return;
+    pushUndoSnapshot();
+  }
+
   function handleMoveAt(id, x, z) {
     // Move only when the tool is "move"
     if (tool !== "move") return;
@@ -131,6 +221,7 @@ export default function Studio() {
 
   function handleObjectClick3D(id) {
     if (tool === "delete") {
+      pushUndoSnapshot();
       setObjects((prev) => prev.filter((o) => o.id !== id));
       if (selectedId === id) setSelectedId(null);
       return;
@@ -179,6 +270,35 @@ export default function Studio() {
               >
                 Nieuw project
               </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={undo}
+                  type="button"
+                  disabled={!canUndo}
+                  className={clsx(
+                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                    canUndo
+                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
+                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={redo}
+                  type="button"
+                  disabled={!canRedo}
+                  className={clsx(
+                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                    canRedo
+                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
+                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Redo
+                </button>
+              </div>
 
               <button
                 onClick={saveProject}
@@ -237,6 +357,7 @@ export default function Studio() {
                 tool={tool}
                 onPlaceAt={handlePlaceAt}
                 onObjectClick={handleObjectClick3D}
+                onMoveStart={handleMoveStart}
                 onMove={handleMoveAt}
               />
             </div>
@@ -273,6 +394,20 @@ export default function Studio() {
                   label="Diepte (d)"
                   value={selectedObj.d}
                   onChange={(v) => updateSelected({ d: v })}
+                />
+
+                <LabeledNumber
+                  label="Hoogte boven vloer (y)"
+                  value={selectedObj.y ?? 0}
+                  step={0.1}
+                  onChange={(v) => updateSelected({ y: Math.max(0, v) })}
+                />
+
+                <LabeledNumber
+                  label="Rotatie (°)"
+                  value={selectedObj.rotY ?? 0}
+                  step={1}
+                  onChange={(v) => updateSelected({ rotY: v })}
                 />
 
                 <div className="rounded-2xl border border-black/10 bg-white p-4">
@@ -321,13 +456,13 @@ function ToolButton({ label, active, onClick }) {
   );
 }
 
-function LabeledNumber({ label, value, onChange }) {
+function LabeledNumber({ label, value, onChange, step = 0.1 }) {
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-4">
       <div className="text-xs font-semibold text-black/70">{label}</div>
       <input
         type="number"
-        step="0.1"
+        step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
