@@ -84,27 +84,12 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               if (tool === "move") {
                 onMoveStart?.(o.id);
                 setDraggingId(o.id);
-                try {
-                  e.target?.setPointerCapture?.(e.pointerId);
-                } catch {
-                  // ignore if not supported
-                }
               }
             }}
             onPointerMove={(e) => {
+              // Dragging is handled globally by DragMoveController (so walls never block it).
               if (tool !== "move") return;
-              if (draggingId !== o.id) return;
-
-              const gp = groundPointFromRay(e.ray);
-              if (!gp) return;
-
-              const x0 = snap(gp.x, snapStep);
-              const z0 = snap(gp.z, snapStep);
-              const margin = 0.25;
-              const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-              const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-
-              onMove?.(o.id, nx, nz);
+              if (draggingId) return;
             }}
             onPointerUp={(e) => {
               if (tool !== "move") return;
@@ -204,6 +189,64 @@ function Room({ roomW, roomD, wallH, showWalls }) {
     </group>
   );
 }
+
+function DragMoveController({ tool, draggingId, setDraggingId, onMove, snapStep, roomW, roomD }) {
+  const { camera, gl } = useThree();
+
+  // A tiny, robust drag loop that does NOT depend on R3F pointer events hitting the mesh.
+  // It always projects the pointer onto the ground plane (y=0).
+  useEffect(() => {
+    if (tool !== "move") return;
+    if (!draggingId) return;
+    if (!gl?.domElement) return;
+
+    const el = gl.domElement;
+
+    const onMoveEvt = (ev) => {
+      // Pointer might be outside the canvas; still handle it.
+      const rect = el.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width;
+      const y = (ev.clientY - rect.top) / rect.height;
+
+      const ndcX = x * 2 - 1;
+      const ndcY = -(y * 2 - 1);
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+
+      const ray = raycaster.ray;
+      const gp = groundPointFromRay(ray);
+      if (!gp) return;
+
+      const x0 = snap(gp.x, snapStep);
+      const z0 = snap(gp.z, snapStep);
+
+      const margin = 0.25;
+      const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+      const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+
+      onMove?.(draggingId, nx, nz);
+    };
+
+    const onUpEvt = () => {
+      setDraggingId(null);
+    };
+
+    // Listen on window so dragging keeps working even if the pointer leaves the canvas.
+    window.addEventListener("pointermove", onMoveEvt, { passive: true });
+    window.addEventListener("pointerup", onUpEvt, { passive: true });
+    window.addEventListener("pointercancel", onUpEvt, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointermove", onMoveEvt);
+      window.removeEventListener("pointerup", onUpEvt);
+      window.removeEventListener("pointercancel", onUpEvt);
+    };
+  }, [tool, draggingId, onMove, snapStep, roomW, roomD, camera, gl, setDraggingId]);
+
+  return null;
+}
+
 
 function ZoomUI({ controlsRef, minDistance, maxDistance }) {
   const [t, setT] = useState(0.35); // 0..1
@@ -355,6 +398,15 @@ export default function StudioScene({
 
         {/* Room walls */}
         <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} />
+        <DragMoveController
+          tool={tool}
+          draggingId={draggingId}
+          setDraggingId={setDraggingId}
+          onMove={onMove}
+          snapStep={snapStep}
+          roomW={roomW}
+          roomD={roomD}
+        />
 
 
         {/* Blocks */}
