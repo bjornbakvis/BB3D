@@ -31,3 +31,12 @@ body {
 .bb-pill {
   @apply inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700;
 }
+
+
+/* Always reserve scrollbar space to prevent layout shift between pages */
+html { overflow-y: scroll; }
+
+/* Mobile friendly: prevent iOS text auto-zoom surprises */
+html { -webkit-text-size-adjust: 100%; }
+
+#root { min-height: 100%; }
