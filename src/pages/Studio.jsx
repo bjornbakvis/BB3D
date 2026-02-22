@@ -235,19 +235,123 @@ export default function Studio() {
     );
   }
 
-  function handlePlaceAt(x, z) {
+  
+  // --- Positioning helpers (professional feel) ---
+  function rotatedExtents(w, d, rotYDeg) {
+    const rw = Number(w || 0);
+    const rd = Number(d || 0);
+    const r = (Number(rotYDeg || 0) * Math.PI) / 180;
+    const c = Math.abs(Math.cos(r));
+    const s = Math.abs(Math.sin(r));
+    const ex = (c * rw + s * rd) / 2; // half-extent on X
+    const ez = (s * rw + c * rd) / 2; // half-extent on Z
+    return { ex, ez };
+  }
+
+  function constrainAndMagnet({ id, x, z, w, d, rotY, objectsNow }) {
+    const { ex, ez } = rotatedExtents(w, d, rotY);
+
+    // Keep a tiny gap so objects don't visually clip into walls
+    const wallGap = 0.02;
+
+    // Bounds for the CENTER of the object so its sides stay inside the room
+    const minX = -roomW / 2 + ex + wallGap;
+    const maxX = roomW / 2 - ex - wallGap;
+    const minZ = -roomD / 2 + ez + wallGap;
+    const maxZ = roomD / 2 - ez - wallGap;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    let nx = clamp(x, minX, maxX);
+    let nz = clamp(z, minZ, maxZ);
+
+    // "Magnet" distance (how close is considered 'snap')
+    const magnet = 0.12;
+
+    // Snap to walls (touching)
+    if (Math.abs(nx - minX) <= magnet) nx = minX;
+    if (Math.abs(nx - maxX) <= magnet) nx = maxX;
+    if (Math.abs(nz - minZ) <= magnet) nz = minZ;
+    if (Math.abs(nz - maxZ) <= magnet) nz = maxZ;
+
+    // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
+    const others = (objectsNow || []).filter((o) => o && o.id !== id);
+    for (const o of others) {
+      const ox = Number(o.x ?? 0);
+      const oz = Number(o.z ?? 0);
+      const ow = Number(o.w || 1);
+      const od = Number(o.d || 1);
+      const orot = Number(o.rotY || 0);
+      const { ex: oex, ez: oez } = rotatedExtents(ow, od, orot);
+
+      // Candidate snap positions on X (touch faces)
+      const touchRight = ox + (oex + ex);
+      const touchLeft = ox - (oex + ex);
+
+      // Only snap X if we are roughly aligned in Z (overlapping "lane")
+      const zOverlap = Math.abs(nz - oz) <= (oez + ez + 0.02);
+      if (zOverlap) {
+        if (Math.abs(nx - touchRight) <= magnet) nx = touchRight;
+        if (Math.abs(nx - touchLeft) <= magnet) nx = touchLeft;
+      }
+
+      // Candidate snap positions on Z
+      const touchFront = oz + (oez + ez);
+      const touchBack = oz - (oez + ez);
+
+      const xOverlap = Math.abs(nx - ox) <= (oex + ex + 0.02);
+      if (xOverlap) {
+        if (Math.abs(nz - touchFront) <= magnet) nz = touchFront;
+        if (Math.abs(nz - touchBack) <= magnet) nz = touchBack;
+      }
+
+      // Hard overlap prevention (push out on the smallest penetration)
+      const dx = nx - ox;
+      const dz = nz - oz;
+      const ax = Math.abs(dx);
+      const az = Math.abs(dz);
+      const minAx = oex + ex;
+      const minAz = oez + ez;
+
+      if (ax < minAx && az < minAz) {
+        const penX = minAx - ax;
+        const penZ = minAz - az;
+
+        if (penX < penZ) {
+          nx += (dx >= 0 ? 1 : -1) * (penX + 0.001);
+        } else {
+          nz += (dz >= 0 ? 1 : -1) * (penZ + 0.001);
+        }
+
+        // Re-clamp after push-out
+        nx = clamp(nx, minX, maxX);
+        nz = clamp(nz, minZ, maxZ);
+      }
+    }
+
+    return { x: nx, z: nz };
+  }
+
+function handlePlaceAt(x, z) {
     if (tool !== "place") return;
     pushUndoSnapshot();
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    // Keep blocks inside the room (simple margin so it feels consistent)
-    const margin = 0.25;
-    const minX = -roomW / 2 + margin;
-    const maxX = roomW / 2 - margin;
-    const minZ = -roomD / 2 + margin;
-    const maxZ = roomD / 2 - margin;
-    const cx = clamp(x, minX, maxX);
-    const cz = clamp(z, minZ, maxZ);
+
+    // Place inside room + "magnet" to walls/other objects
+    const placed = constrainAndMagnet({
+      id: null,
+      x,
+      z,
+      w: defaultBlock.w,
+      d: defaultBlock.d,
+      rotY: defaultBlock.rotY,
+      objectsNow: objects,
+    });
+
+    const cx = placed.x;
+    const cz = placed.z;
+
     // Keep a lightweight 0..1 mapping too (based on current room size)
     const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
     const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
@@ -276,22 +380,28 @@ export default function Studio() {
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    // Keep blocks inside the room (same margin as placement)
-    const margin = 0.25;
-    const minX = -roomW / 2 + margin;
-    const maxX = roomW / 2 - margin;
-    const minZ = -roomD / 2 + margin;
-    const maxZ = roomD / 2 - margin;
+    setObjects((prev) => {
+      const moving = prev.find((o) => o.id === id);
+      if (!moving) return prev;
 
-    const cx = clamp(x, minX, maxX);
-    const cz = clamp(z, minZ, maxZ);
+      const moved = constrainAndMagnet({
+        id,
+        x,
+        z,
+        w: moving.w,
+        d: moving.d,
+        rotY: moving.rotY,
+        objectsNow: prev,
+      });
 
-    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
-    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
+      const cx = moved.x;
+      const cz = moved.z;
 
-    setObjects((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, x: cx, z: cz, px, py } : o))
-    );
+      const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
+      const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
+
+      return prev.map((o) => (o.id === id ? { ...o, x: cx, z: cz, px, py } : o));
+    });
   }
 
 
