@@ -114,12 +114,19 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             <boxGeometry args={[w, h, d]} />
             <meshStandardMaterial
               color={baseColor}
-              emissive={isSel ? "#111111" : isHover ? "#111111" : "#000000"}
-              emissiveIntensity={isSel ? 0.9 : isHover ? 0.22 : 0}
+              emissive={isSel ? "#222222" : isHover ? "#222222" : "#000000"}
+              emissiveIntensity={isSel ? 1.25 : isHover ? 0.45 : 0}
               roughness={0.8}
               metalness={0.05}
             />
-          </mesh>
+            {(isSel || isHover) && (
+              <Edges
+                scale={1.01}
+                threshold={15}
+                color={isSel ? "#111111" : "#333333"}
+              />
+            )}
+</mesh>
         );
       })}
     </>
