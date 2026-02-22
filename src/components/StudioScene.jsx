@@ -100,11 +100,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 
               const x0 = snap(gp.x, snapStep);
               const z0 = snap(gp.z, snapStep);
-              const margin = 0.25;
-              const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-              const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-
-              onMove?.(o.id, nx, nz);
+              onMove?.(o.id, x0, z0);
             }}
             onPointerUp={(e) => {
               if (tool !== "move") return;
@@ -342,10 +338,7 @@ export default function StudioScene({
             const p = e.point; // THREE.Vector3
             const x0 = snap(p.x, snapStep);
             const z0 = snap(p.z, snapStep);
-            const margin = 0.25;
-            const x = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-            const z = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-            onPlaceAt?.(x, z);
+            onPlaceAt?.(x0, z0);
           }}
           receiveShadow
         >
