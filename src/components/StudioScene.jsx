@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Edges, TransformControls } from "@react-three/drei";
 
@@ -61,6 +61,9 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             key={o.id}
             position={[o._x, (h / 2) + (Number(o.y || 0)), o._z]}
             rotation={[0, (Number(o.rotY || 0) * Math.PI) / 180, 0]}
+            ref={(r) => {
+              if (isSel) setSelectedMesh?.(r);
+            }}
             onPointerOver={(e) => {
               e.stopPropagation();
               setHoverId?.(o.id);
@@ -146,6 +149,10 @@ export default function StudioScene({
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
+
+  useEffect(() => {
+    if (!selectedId) setSelectedMesh(null);
+  }, [selectedId]);
   return (
     <div className="h-full w-full">
       <Canvas camera={{ position: [6, 6, 6], fov: 50 }} shadows gl={{ antialias: true }}>
@@ -209,6 +216,35 @@ export default function StudioScene({
           setHoverId={setHoverId}
           setSelectedMesh={setSelectedMesh}
         />
+
+
+        {/* Transform gizmo (visible when Move tool + selection) */}
+        {tool === "move" && selectedId && selectedMesh && (
+          <TransformControls
+            object={selectedMesh}
+            mode="translate"
+            showY={false}
+            enabled={!draggingId}
+            translationSnap={snapStep}
+            onMouseDown={(e) => {
+              e?.stopPropagation?.();
+              setDraggingId("__gizmo__");
+            }}
+            onMouseUp={(e) => {
+              e?.stopPropagation?.();
+              setDraggingId(null);
+            }}
+            onObjectChange={() => {
+              const x = snap(selectedMesh.position.x, snapStep);
+              const z = snap(selectedMesh.position.z, snapStep);
+
+              selectedMesh.position.x = x;
+              selectedMesh.position.z = z;
+
+              onMove?.(selectedId, x, z);
+            }}
+          />
+        )}
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
         <OrbitControls
