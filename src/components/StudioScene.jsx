@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
+import { OrbitControls, Grid, Edges } from "@react-three/drei";
 
 function colorToHex(name) {
   switch (name) {
@@ -201,35 +201,6 @@ function Room({ roomW, roomD, wallH, showWalls }) {
   );
 }
 
-
-function CameraFit({ controlsRef, roomW, roomD, wallH, minDistance, maxDistance }) {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    const c = controlsRef.current;
-    if (!c) return;
-
-    // Keep looking at the grid/ground
-    c.target.set(0, 0, 0);
-
-    // Pick a comfortable default distance based on room size
-    const size = Math.max(2, Number(roomW) || 2, Number(roomD) || 2);
-    const desired = clamp(size * 1.15 + 1.5, minDistance, maxDistance);
-
-    // Place camera diagonally above, so you see inside the room (dollhouse feel)
-    const y = Math.max(2.0, (Number(wallH) || 2.4) * 0.95);
-    camera.position.set(size * 0.55, y + 1.2, size * 0.55);
-
-    // Normalize to desired distance
-    const dir = new THREE.Vector3().subVectors(camera.position, c.target).normalize();
-    camera.position.copy(c.target.clone().add(dir.multiplyScalar(desired)));
-
-    c.update();
-  }, [controlsRef, roomW, roomD, wallH, minDistance, maxDistance, camera]);
-
-  return null;
-}
-
 function ZoomUI({ controlsRef, minDistance, maxDistance }) {
   const [t, setT] = useState(0.35); // 0..1
   const rafLock = useRef(false);
@@ -271,8 +242,7 @@ function ZoomUI({ controlsRef, minDistance, maxDistance }) {
   };
 
   return (
-    <Html fullscreen>
-      <div className="absolute right-3 bottom-3 z-20 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
+    <div className="absolute right-3 bottom-3 z-20 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
       <button
         type="button"
         className="h-9 w-9 rounded-lg border border-black/10 bg-white text-lg leading-none hover:bg-black/5 active:scale-[0.98]"
@@ -307,7 +277,6 @@ function ZoomUI({ controlsRef, minDistance, maxDistance }) {
         –
       </button>
     </div>
-    </Html>
   );
 }
 
@@ -331,7 +300,7 @@ export default function StudioScene({
   const controlsRef = useRef(null);
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: [3.5, 4.0, 3.5], fov: 50 }} shadows gl={{ antialias: true }}>
+      <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={0.55} />
         <directionalLight
@@ -345,15 +314,15 @@ export default function StudioScene({
         {/* Grid vloer */}
         <Grid
           position={[0, 0, 0]}
-          args={[Math.max(2, roomW), Math.max(2, roomD)]}
+          args={[Math.max(6, roomW + 2), Math.max(6, roomD + 2)]}
           cellSize={1}
           cellThickness={0.5}
           cellColor="#000000"
           sectionSize={5}
           sectionThickness={1}
           sectionColor="#000000"
-          fadeDistance={12}
-          fadeStrength={0.8}
+          fadeDistance={30}
+          fadeStrength={1}
         />
 
         {/* Vloer (klikbaar) */}
