@@ -6,7 +6,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 
 export default function TopNav() {
   const navigate = useNavigate();
-  const { isAuthed, loginMock, logoutMock } = useAuth();
+  const { isAuthenticated, loginMock, logoutMock } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-black/40 backdrop-blur">
@@ -49,7 +49,7 @@ export default function TopNav() {
             Studio
           </NavLink>
 
-          {!isAuthed ? (
+          {!isAuthenticated ? (
             <button
               onClick={() => {
                 loginMock();
