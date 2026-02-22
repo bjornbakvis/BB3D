@@ -80,7 +80,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 
               // Start dragging only when Move tool is active
               if (tool === "move") {
-                onMoveStart?.(o.id);
+                moveStartCb?.(o.id);
                 setDraggingId(o.id);
                 try {
                   e.target?.setPointerCapture?.(e.pointerId);
@@ -99,7 +99,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               const nx = snap(gp.x, snapStep);
               const nz = snap(gp.z, snapStep);
 
-              onMove?.(o.id, nx, nz);
+              moveCb?.(o.id, nx, nz);
             }}
             onPointerUp={(e) => {
               if (tool !== "move") return;
@@ -153,6 +153,10 @@ export default function StudioScene({
   useEffect(() => {
     if (!selectedId) setSelectedMesh(null);
   }, [selectedId]);
+
+  // Backwards-compatible prop names (so moves persist in parent state)
+  const moveCb = onMove || onMoveAt;
+  const moveStartCb = onMoveStart || onMoveStartAt;
   return (
     <div className="h-full w-full">
       <Canvas camera={{ position: [6, 6, 6], fov: 50 }} shadows gl={{ antialias: true }}>
@@ -232,6 +236,12 @@ export default function StudioScene({
             }}
             onMouseUp={(e) => {
               e?.stopPropagation?.();
+              // Commit final snapped position once on release (helps Undo + makes it "stick")
+              const x = snap(selectedMesh.position.x, snapStep);
+              const z = snap(selectedMesh.position.z, snapStep);
+              selectedMesh.position.x = x;
+              selectedMesh.position.z = z;
+              moveCb?.(selectedId, x, z);
               setDraggingId(null);
             }}
             onObjectChange={() => {
@@ -241,7 +251,7 @@ export default function StudioScene({
               selectedMesh.position.x = x;
               selectedMesh.position.z = z;
 
-              onMove?.(selectedId, x, z);
+              moveCb?.(selectedId, x, z);
             }}
           />
         )}
