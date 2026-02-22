@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 
 function colorToHex(name) {
   switch (name) {
@@ -142,7 +142,10 @@ function Room({ roomW, roomD, wallH, showWalls }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (option 3: auto-hide)
-  const hiddenWall = useMemo(() => {
+  const [hiddenWall, setHiddenWall] = useState("front");
+
+  // Update hidden wall dynamically while the camera rotates (dollhouse view)
+  useFrame(() => {
     const center = new THREE.Vector3(0, wallH / 2, 0);
     const camDir = new THREE.Vector3().subVectors(camera.position, center).normalize();
 
@@ -162,8 +165,10 @@ function Room({ roomW, roomD, wallH, showWalls }) {
         best = c.key;
       }
     }
-    return best;
-  }, [camera.position.x, camera.position.y, camera.position.z, roomW, roomD, wallH]);
+
+    // Avoid re-render spam
+    setHiddenWall((prev) => (prev === best ? prev : best));
+  });
 
   if (!showWalls) return null;
 
@@ -199,6 +204,27 @@ function Room({ roomW, roomD, wallH, showWalls }) {
       {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD])}
     </group>
   );
+}
+
+
+function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const base = Math.max(roomW, roomD);
+    const dist = Math.max(4.2, base * 1.35);
+    const y = Math.max(3.2, wallH * 1.25 + 0.9);
+    camera.position.set(dist, y, dist);
+    camera.lookAt(0, 0, 0);
+
+    const c = controlsRef.current;
+    if (c) {
+      c.target.set(0, 0, 0);
+      c.update();
+    }
+  }, [camera, controlsRef, roomW, roomD, wallH]);
+
+  return null;
 }
 
 function ZoomUI({ controlsRef, minDistance, maxDistance }) {
@@ -300,9 +326,10 @@ export default function StudioScene({
   const controlsRef = useRef(null);
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
+      <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={0.55} />
+        <CameraFramer controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
         <directionalLight
           position={[6, 10, 4]}
           intensity={1}
@@ -314,7 +341,7 @@ export default function StudioScene({
         {/* Grid vloer */}
         <Grid
           position={[0, 0, 0]}
-          args={[Math.max(6, roomW + 2), Math.max(6, roomD + 2)]}
+          args={[roomW, roomD]}
           cellSize={1}
           cellThickness={0.5}
           cellColor="#000000"
@@ -385,6 +412,9 @@ export default function StudioScene({
           maxPolarAngle={Math.PI / 2 - 0.1}
           target={[0, 0, 0]}
         />
+        <Html fullscreen>
+          <ZoomUI controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
+        </Html>
       </Canvas>
     </div>
   );
