@@ -16,6 +16,21 @@ export default function Studio() {
   const [projectName, setProjectName] = useState("Nieuw ontwerp");
   const [lastSaved, setLastSaved] = useState("");
 
+  // Ruimte / templates (Stap A)
+  const TEMPLATES = useMemo(() => ({
+    badkamer: { label: "Badkamer", roomW: 3.0, roomD: 2.0, wallH: 2.4, showWalls: true },
+    toilet: { label: "Toilet", roomW: 1.2, roomD: 1.0, wallH: 2.4, showWalls: true },
+    tuin: { label: "Tuin", roomW: 8.0, roomD: 5.0, wallH: 1.2, showWalls: true },
+    leeg: { label: "Lege ruimte", roomW: 6.0, roomD: 6.0, wallH: 2.4, showWalls: false },
+  }), []);
+
+  const [templateId, setTemplateId] = useState("badkamer");
+  const [roomW, setRoomW] = useState(TEMPLATES.badkamer.roomW);
+  const [roomD, setRoomD] = useState(TEMPLATES.badkamer.roomD);
+  const [wallH, setWallH] = useState(TEMPLATES.badkamer.wallH);
+  const [showWalls, setShowWalls] = useState(TEMPLATES.badkamer.showWalls);
+
+
   // Editor state (stap 1)
   const [tool, setTool] = useState("select"); // select | place | move | delete
   const [objects, setObjects] = useState([]);
@@ -36,6 +51,11 @@ export default function Studio() {
     undoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
+      templateId,
+      roomW,
+      roomD,
+      wallH,
+      showWalls,
     });
     if (nextRedoClear) redoStackRef.current = [];
     setCanUndo(undoStackRef.current.length > 0);
@@ -49,6 +69,11 @@ export default function Studio() {
     redoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
+      templateId,
+      roomW,
+      roomD,
+      wallH,
+      showWalls,
     });
     setObjects(prev.objects);
     setSelectedId(prev.selectedId ?? null);
@@ -63,6 +88,11 @@ export default function Studio() {
     undoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
+      templateId,
+      roomW,
+      roomD,
+      wallH,
+      showWalls,
     });
     setObjects(nxt.objects);
     setSelectedId(nxt.selectedId ?? null);
@@ -132,6 +162,23 @@ export default function Studio() {
     setLastSaved(nowTime());
   }
 
+  function applyTemplate(nextId) {
+    const t = TEMPLATES[nextId] || TEMPLATES.badkamer;
+    pushUndoSnapshot();
+
+    setTemplateId(nextId);
+    setRoomW(t.roomW);
+    setRoomD(t.roomD);
+    setWallH(t.wallH);
+    setShowWalls(t.showWalls);
+
+    // Start fresh for the new template (keeps it predictable)
+    setObjects([]);
+    setSelectedId(null);
+    setTool("select");
+  }
+
+
   function onCanvasClick(e) {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
@@ -183,16 +230,24 @@ export default function Studio() {
     pushUndoSnapshot();
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    // keep a lightweight 0..1 mapping too, so this stays responsive-friendly later
-    const px = clamp(0.5 + x / 10, 0, 1);
-    const py = clamp(0.5 + z / 10, 0, 1);
+    // Keep blocks inside the room (simple margin so it feels consistent)
+    const margin = 0.25;
+    const minX = -roomW / 2 + margin;
+    const maxX = roomW / 2 - margin;
+    const minZ = -roomD / 2 + margin;
+    const maxZ = roomD / 2 - margin;
+    const cx = clamp(x, minX, maxX);
+    const cz = clamp(z, minZ, maxZ);
+    // Keep a lightweight 0..1 mapping too (based on current room size)
+    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
+    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
 
     const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
     const newObj = {
       id,
       type: "Block",
-      x,
-      z,
+      x: cx,
+      z: cz,
       px,
       py,
       ...defaultBlock,
@@ -210,11 +265,11 @@ export default function Studio() {
     if (tool !== "move") return;
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const px = clamp(0.5 + x / 10, 0, 1);
-    const py = clamp(0.5 + z / 10, 0, 1);
+    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
+    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
 
     setObjects((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, x, z, px, py } : o))
+      prev.map((o) => (o.id === id ? { ...o, x: cx, z: cz, px, py } : o))
     );
   }
 
@@ -359,12 +414,83 @@ export default function Studio() {
                 onObjectClick={handleObjectClick3D}
                 onMoveStart={handleMoveStart}
                 onMove={handleMoveAt}
+                roomW={roomW}
+                roomD={roomD}
+                wallH={wallH}
+                showWalls={showWalls}
               />
             </div>
           </section>
 
           {/* RIGHT: Properties */}
           <aside className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+            <div className="mb-4 rounded-2xl border border-black/10 bg-white p-4">
+              <div className="text-sm font-semibold text-black/80">Ruimte</div>
+              <div className="mt-2 grid gap-3">
+                <div>
+                  <div className="text-xs font-semibold text-black/70">Template</div>
+                  <select
+                    value={templateId}
+                    onChange={(e) => applyTemplate(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                  >
+                    {Object.entries(TEMPLATES).map(([key, t]) => (
+                      <option key={key} value={key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <LabeledNumber
+                    label="Breedte (m)"
+                    value={roomW}
+                    onChange={(v) => {
+                      pushUndoSnapshot();
+                      setRoomW(Math.max(0.5, v));
+                    }}
+                  />
+                  <LabeledNumber
+                    label="Diepte (m)"
+                    value={roomD}
+                    onChange={(v) => {
+                      pushUndoSnapshot();
+                      setRoomD(Math.max(0.5, v));
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <LabeledNumber
+                    label="Muurhoogte (m)"
+                    value={wallH}
+                    onChange={(v) => {
+                      pushUndoSnapshot();
+                      setWallH(Math.max(0.5, v));
+                    }}
+                  />
+                  <div className="rounded-2xl border border-black/10 bg-white p-4">
+                    <div className="text-xs font-semibold text-black/70">Muren</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        pushUndoSnapshot();
+                        setShowWalls((p) => !p);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
+                    >
+                      {showWalls ? "Aan" : "Uit"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+                  Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
+                </div>
+              </div>
+            </div>
+
             <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
             {!selectedObj ? (
