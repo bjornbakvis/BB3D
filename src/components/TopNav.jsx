@@ -1,29 +1,36 @@
 import React from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LogIn, LogOut, Cuboid } from "lucide-react";
+import { LogIn, LogOut, Box } from "lucide-react";
 import BBLogo from "./BBLogo.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 
 export default function TopNav() {
   const navigate = useNavigate();
-  const { isAuthenticated, loginMock, logoutMock } = useAuth();
+  const { isAuthed, loginMock, logoutMock } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-3">
-          <BBLogo size={34} />
-          <div className="leading-tight">
-            <div className="text-sm font-extrabold tracking-tight text-slate-900">BB 3D Studio</div>
-            <div className="text-xs font-semibold text-slate-500">Concept • 2026</div>
-          </div>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/40 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
+            <BBLogo size={36} />
+            <div className="leading-tight">
+              <div className="text-sm font-semibold tracking-wide text-white/90">
+                BB3D Studio
+              </div>
+              <div className="text-xs text-white/50">Design • 2026</div>
+            </div>
+          </Link>
+        </div>
 
         <nav className="flex items-center gap-2">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `bb-pill transition ${isActive ? "border-slate-400 text-slate-900" : "hover:bg-slate-100"}`
+              [
+                "rounded-xl px-3 py-2 text-sm",
+                isActive ? "bg-white/10 text-white" : "text-white/70 hover:text-white",
+              ].join(" ")
             }
           >
             Home
@@ -32,44 +39,39 @@ export default function TopNav() {
           <NavLink
             to="/studio"
             className={({ isActive }) =>
-              `bb-pill transition ${isActive ? "border-slate-400 text-slate-900" : "hover:bg-slate-100"}`
+              [
+                "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm",
+                isActive ? "bg-white/10 text-white" : "text-white/70 hover:text-white",
+              ].join(" ")
             }
           >
-            <span className="flex items-center gap-2">
-              <Cuboid size={14} />
-              Studio
-            </span>
+            <Box size={16} />
+            Studio
           </NavLink>
 
-          <div className="ml-2 h-7 w-px bg-slate-200" />
-
-          {!isAuthenticated ? (
+          {!isAuthed ? (
             <button
-              type="button"
-              className="bb-btn-primary"
               onClick={() => {
-                // Voor nu: mock login, zodat je de flow kunt testen.
-                // Later vervangen door echte login pagina + backend.
                 loginMock();
                 navigate("/studio");
               }}
-              title="Voor nu: mock login"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/15"
+              type="button"
             >
               <LogIn size={16} />
-              Naar Studio
+              Login
             </button>
           ) : (
             <button
-              type="button"
-              className="bb-btn-ghost"
               onClick={() => {
                 logoutMock();
                 navigate("/");
               }}
-              title="Uitloggen (mock)"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/15"
+              type="button"
             >
               <LogOut size={16} />
-              Uitloggen
+              Logout
             </button>
           )}
         </nav>
