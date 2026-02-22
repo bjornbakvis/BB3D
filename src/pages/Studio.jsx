@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Box } from "lucide-react";
+import StudioScene from "../components/StudioScene.jsx";
 
 function nowTime() {
   const d = new Date();
@@ -93,6 +94,37 @@ export default function Studio() {
     );
   }
 
+  function handlePlaceAt(x, z) {
+    if (tool !== "place") return;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    // keep a lightweight 0..1 mapping too, so this stays responsive-friendly later
+    const px = clamp(0.5 + x / 10, 0, 1);
+    const py = clamp(0.5 + z / 10, 0, 1);
+
+    const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+    const newObj = {
+      id,
+      type: "Block",
+      x,
+      z,
+      px,
+      py,
+      ...defaultBlock,
+    };
+    setObjects((prev) => [...prev, newObj]);
+    setSelectedId(id);
+  }
+
+  function handleObjectClick3D(id) {
+    if (tool === "delete") {
+      setObjects((prev) => prev.filter((o) => o.id !== id));
+      if (selectedId === id) setSelectedId(null);
+      return;
+    }
+    setSelectedId(id);
+  }
+
   // “Canvas” styling: grid look (zonder echte 3D)
   const gridStyle = {
     backgroundColor: "#ffffff",
@@ -161,7 +193,7 @@ export default function Studio() {
             <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
               <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
               <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Kies “Plaats blok” en klik in het werkvlak.</li>
+                <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
                 <li>Klik op een blok om te selecteren.</li>
                 <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
               </ul>
@@ -184,49 +216,14 @@ export default function Studio() {
               </div>
             </div>
 
-            <div
-              onClick={onCanvasClick}
-              className="relative mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10"
-              style={gridStyle}
-              role="button"
-              tabIndex={0}
-            >
-              {/* Objecten */}
-              {objects.map((o) => {
-                const isSel = o.id === selectedId;
-
-                // simpele “blok” visualisatie als kaartje
-                const left = `${Math.round(o.px * 100)}%`;
-                const top = `${Math.round(o.py * 100)}%`;
-
-                return (
-                  <div
-                    key={o.id}
-                    onClick={(e) => onObjectClick(e, o.id)}
-                    className={clsx(
-                      "absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none rounded-2xl border px-3 py-2 text-xs shadow-sm",
-                      isSel ? "border-black/30 bg-black/10" : "border-black/10 bg-white"
-                    )}
-                    style={{ left, top }}
-                    title="Klik om te selecteren"
-                  >
-                    <div className="font-semibold text-black/80">{o.type}</div>
-                    <div className="text-black/55">
-                      {o.w}×{o.h}×{o.d} • {o.color}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Empty hint */}
-              {objects.length === 0 && (
-                <div className="absolute left-1/2 top-1/2 w-[90%] max-w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-black/10 bg-white/80 p-6 text-center shadow-sm backdrop-blur">
-                  <div className="text-sm font-semibold text-black/80">Je canvas is nog leeg</div>
-                  <div className="mt-2 text-sm text-black/60">
-                    Kies links <b>“Plaats blok”</b> en klik in het werkvlak.
-                  </div>
-                </div>
-              )}
+            <div className="mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10">
+              <StudioScene
+                objects={objects}
+                selectedId={selectedId}
+                tool={tool}
+                onPlaceAt={handlePlaceAt}
+                onObjectClick={handleObjectClick3D}
+              />
             </div>
           </section>
 
