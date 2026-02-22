@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, TransformControls } from "@react-three/drei";
 
 function colorToHex(name) {
   switch (name) {
@@ -33,7 +33,7 @@ function groundPointFromRay(ray) {
   return { x: o.x + d.x * t, z: o.z + d.z * t };
 }
 
-function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId }) {
+function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId, setSelectedMesh }) {
   // NOTE: we support both (x,z) and (px,py) so we don't break earlier data
   const mapped = useMemo(() => {
     return (objects || []).map((o) => {
@@ -145,7 +145,7 @@ export default function StudioScene({
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
-
+  const [selectedMesh, setSelectedMesh] = useState(null);
   return (
     <div className="h-full w-full">
       <Canvas camera={{ position: [6, 6, 6], fov: 50 }} shadows gl={{ antialias: true }}>
@@ -207,6 +207,7 @@ export default function StudioScene({
           setDraggingId={setDraggingId}
           hoverId={hoverId}
           setHoverId={setHoverId}
+          setSelectedMesh={setSelectedMesh}
         />
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
