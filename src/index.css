@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kleine basis: rustig, modern, en veilig voor later uitbreiden */
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-slate-900;
+}
+
+/* Een subtiele "glass" look die we later kunnen hergebruiken */
+.bb-card {
+  @apply rounded-3xl border border-slate-200 bg-white/80 shadow-sm backdrop-blur;
+}
+.bb-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition;
+}
+.bb-btn-primary {
+  @apply bb-btn bg-slate-900 text-white hover:bg-slate-800;
+}
+.bb-btn-ghost {
+  @apply bb-btn bg-transparent text-slate-700 hover:bg-slate-100;
+}
+.bb-pill {
+  @apply inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700;
+}
