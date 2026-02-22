@@ -1,145 +1,104 @@
 import React from "react";
-import { ArrowRight, Sparkles, ShieldCheck, Layers3, Ruler, Wand2 } from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck, Layers, Ruler, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+function Feature({ icon, title, text }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+        {icon}
+      </div>
+      <div className="text-base font-semibold text-white/90">{title}</div>
+      <p className="mt-1 text-sm leading-relaxed text-white/60">{text}</p>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="space-y-10">
-      <section className="bb-card relative overflow-hidden p-8">
-        {/* subtle background */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.08]">
-          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-slate-900 blur-3xl" />
-          <div className="absolute -right-24 -bottom-24 h-72 w-72 rounded-full bg-slate-900 blur-3xl" />
+    <main className="mx-auto w-full max-w-6xl px-4 py-10">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-8 md:p-12">
+        <div className="pointer-events-none absolute inset-0 opacity-60">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-28 left-16 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+          <div className="absolute -bottom-28 right-16 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
         </div>
 
-        <div className="relative grid gap-8 md:grid-cols-2 md:items-center">
-          <div className="space-y-4">
-            <div className="bb-pill inline-flex">
-              <Sparkles size={14} />
-              <span>3D ontwerpen voor niche bedrijven</span>
-            </div>
-
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-              Maak in minuten een strak 3D ontwerp — voor badkamers, tuinen, toiletten en meer.
-            </h1>
-
-            <p className="max-w-prose text-base font-medium text-slate-600">
-              Dit project is de basis. Vandaag bouwen we de “lege maar stevige” webapp: navigatie, homepagina,
-              en alvast een plek voor een Studio-pagina die later achter inloggen komt.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Link to="/studio" className="bb-btn-primary">
-                Begin met een ontwerp <ArrowRight size={16} />
-              </Link>
-              <a
-                href="#plan"
-                className="bb-btn-ghost"
-              >
-                Bekijk het plan
-              </a>
-            </div>
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+            <Sparkles size={14} />
+            <span>2026 • BB3D Studio (basis)</span>
           </div>
 
-          <div className="bb-card p-6">
-            <div className="grid gap-4">
-              <div className="flex items-start gap-3">
-                <div className="bb-pill">
-                  <Layers3 size={14} /> Modules
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Projecten, klanten, ontwerpen</div>
-                  <div className="text-sm text-slate-600">
-                    Straks per klant meerdere ontwerpen opslaan en delen.
-                  </div>
-                </div>
-              </div>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+            Ontwerp in 3D voor niche bedrijven
+          </h1>
 
-              <div className="flex items-start gap-3">
-                <div className="bb-pill">
-                  <Ruler size={14} /> Precisie
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Meters & maten</div>
-                  <div className="text-sm text-slate-600">
-                    Later: slimme maatvoering, snapping en templates.
-                  </div>
-                </div>
-              </div>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/65 md:text-base">
+            Maak straks professionele 3D ontwerpen voor badkamers, tuinen en meer.
+            Vandaag leggen we de basis: een strakke homepagina, navigatie en een “Studio” pagina die later
+            achter een echte login komt.
+          </p>
 
-              <div className="flex items-start gap-3">
-                <div className="bb-pill">
-                  <Wand2 size={14} /> Slim
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Assistent & presets</div>
-                  <div className="text-sm text-slate-600">
-                    Later: AI-hulp voor indelingen en materiaalkeuze.
-                  </div>
-                </div>
-              </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/studio"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/15"
+            >
+              Naar de Studio
+              <ArrowRight size={16} />
+            </Link>
 
-              <div className="flex items-start gap-3">
-                <div className="bb-pill">
-                  <ShieldCheck size={14} /> Veilig
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Inloggen verplicht</div>
-                  <div className="text-sm text-slate-600">
-                    Ontwerpen maken/bekijken alleen voor ingelogde gebruikers.
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-medium text-white/80 hover:text-white"
+            >
+              Login (placeholder)
+            </Link>
+          </div>
+
+          <div className="mt-6 text-xs text-white/45">
+            Tip: Studio is nu “mock beveiligd”. Straks maken we echte login + sessies.
           </div>
         </div>
       </section>
 
-      <section id="plan" className="space-y-4">
-        <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Plan (simpel en stap-voor-stap)</h2>
+      <section className="mt-10">
+        <div className="mb-4 text-sm font-semibold text-white/80">Wat bouwen we hierna?</div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="bb-card p-6">
-            <div className="text-sm font-extrabold text-slate-900">Stap 1 — Basis webapp</div>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-              <li>Homepagina + navigatie (klaar ✅)</li>
-              <li>Studio placeholder pagina (klaar ✅)</li>
-              <li>Login placeholder + “ProtectedRoute” (klaar ✅)</li>
-            </ul>
-          </div>
-
-          <div className="bb-card p-6">
-            <div className="text-sm font-extrabold text-slate-900">Stap 2 — Echte login (later)</div>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-              <li>Backend endpoints: /api/login, /api/logout, /api/session</li>
-              <li>Session-cookie (veilig, HttpOnly)</li>
-              <li>Studio alleen bereikbaar als session geldig is</li>
-            </ul>
-          </div>
-
-          <div className="bb-card p-6">
-            <div className="text-sm font-extrabold text-slate-900">Stap 3 — 3D engine kiezen (later)</div>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-              <li>Start simpel: 2D grid + “muren” tekenen</li>
-              <li>Daarna: 3D view + basis objecten (bad, wc, planten)</li>
-              <li>Opslaan, laden, delen</li>
-            </ul>
-          </div>
-
-          <div className="bb-card p-6">
-            <div className="text-sm font-extrabold text-slate-900">Stap 4 — Producten & prijzen (later)</div>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-              <li>Catalogus (tegels, kranen, meubels, planten)</li>
-              <li>Offerte/export (PDF) per ontwerp</li>
-              <li>Rechten: wie mag wat zien/bewerken</li>
-            </ul>
-          </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Feature
+            icon={<ShieldCheck size={18} />}
+            title="Echte login (verplicht)"
+            text="Straks moet je eerst inloggen voordat je ontwerpen kunt maken of bekijken."
+          />
+          <Feature
+            icon={<Layers size={18} />}
+            title="3D lagen & onderdelen"
+            text="Denk aan muren, tegels, meubels, planten. Alles als ‘blokken’ die je kunt plaatsen."
+          />
+          <Feature
+            icon={<Ruler size={18} />}
+            title="Meten & maatvoering"
+            text="Handige hulpmiddelen: maten, grid, snapping en nette uitlijning."
+          />
+          <Feature
+            icon={<Wand2 size={18} />}
+            title="Slimme templates"
+            text="Snelle start voor badkamer/tuin/toilet met slimme standaard layouts."
+          />
+          <Feature
+            icon={<Sparkles size={18} />}
+            title="Mooi renderen"
+            text="Later: mooi licht, materialen en een ‘presentatie’ modus voor klanten."
+          />
+          <Feature
+            icon={<ArrowRight size={18} />}
+            title="Opslaan & delen"
+            text="Ontwerpen opslaan per klant en delen via link/export."
+          />
         </div>
       </section>
-
-      <footer className="text-center text-xs font-semibold text-slate-500">
-        BB 3D Studio • basisproject • gebouwd met React + Vite + Tailwind
-      </footer>
-    </div>
+    </main>
   );
 }
