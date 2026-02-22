@@ -18,6 +18,10 @@ function colorToHex(name) {
   }
 }
 
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
 function snap(v, step) {
   if (!step) return v;
   return Math.round(v / step) * step;
@@ -33,7 +37,7 @@ function groundPointFromRay(ray) {
   return { x: o.x + d.x * t, z: o.z + d.z * t };
 }
 
-function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId, setSelectedMesh }) {
+function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId, setSelectedMesh, roomW, roomD }) {
   // NOTE: we support both (x,z) and (px,py) so we don't break earlier data
   const mapped = useMemo(() => {
     return (objects || []).map((o) => {
@@ -93,8 +97,11 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               const gp = groundPointFromRay(e.ray);
               if (!gp) return;
 
-              const nx = snap(gp.x, snapStep);
-              const nz = snap(gp.z, snapStep);
+              const x0 = snap(gp.x, snapStep);
+              const z0 = snap(gp.z, snapStep);
+              const margin = 0.25;
+              const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+              const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
 
               onMove?.(o.id, nx, nz);
             }}
@@ -142,13 +149,17 @@ export default function StudioScene({
   onMoveStart,
   onMove,
   snapStep = 0.5,
+  roomW = 6,
+  roomD = 6,
+  wallH = 2.4,
+  showWalls = true,
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   return (
     <div className="h-full w-full">
-      <Canvas camera={{ position: [6, 6, 6], fov: 50 }} shadows gl={{ antialias: true }}>
+      <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={0.55} />
         <directionalLight
@@ -162,7 +173,7 @@ export default function StudioScene({
         {/* Grid vloer */}
         <Grid
           position={[0, 0, 0]}
-          args={[20, 20]}
+          args={[Math.max(6, roomW + 2), Math.max(6, roomD + 2)]}
           cellSize={1}
           cellThickness={0.5}
           cellColor="#000000"
@@ -184,15 +195,48 @@ export default function StudioScene({
             if (tool !== "place") return;
 
             const p = e.point; // THREE.Vector3
-            const x = snap(p.x, snapStep);
-            const z = snap(p.z, snapStep);
+            const x0 = snap(p.x, snapStep);
+            const z0 = snap(p.z, snapStep);
+            const margin = 0.25;
+            const x = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+            const z = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
             onPlaceAt?.(x, z);
           }}
           receiveShadow
         >
-          <planeGeometry args={[40, 40]} />
+          <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
           <meshStandardMaterial color="#ffffff" transparent opacity={0} />
         </mesh>
+
+        {/* Room walls (template) */}
+        {showWalls && (
+          <group>
+            {/* Back wall */}
+            <mesh position={[0, wallH / 2, -roomD / 2]} castShadow receiveShadow>
+              <boxGeometry args={[roomW, wallH, 0.1]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Front wall */}
+            <mesh position={[0, wallH / 2, roomD / 2]} castShadow receiveShadow>
+              <boxGeometry args={[roomW, wallH, 0.1]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Left wall */}
+            <mesh position={[-roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.1, wallH, roomD]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Right wall */}
+            <mesh position={[roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.1, wallH, roomD]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+          </group>
+        )}
+
 
         {/* Blocks */}
         <Blocks
@@ -208,6 +252,8 @@ export default function StudioScene({
           hoverId={hoverId}
           setHoverId={setHoverId}
           setSelectedMesh={setSelectedMesh}
+          roomW={roomW}
+          roomD={roomD}
         />
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
