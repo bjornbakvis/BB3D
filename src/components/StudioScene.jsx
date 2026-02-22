@@ -85,38 +85,12 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
                 onMoveStart?.(o.id);
                 setDraggingId(o.id);
                 try {
-                  e.nativeEvent?.target?.setPointerCapture?.(e.pointerId);
+                  e.target?.setPointerCapture?.(e.pointerId);
                 } catch {
                   // ignore if not supported
                 }
               }
             }}
-          onPointerMove={(e) => {
-            if (tool !== "move") return;
-            if (draggingId) return;
-            if (!draggingId) return;
-            e.stopPropagation();
-            const p = e.point;
-            const x0 = snap(p.x, snapStep);
-            const z0 = snap(p.z, snapStep);
-            const margin = 0.25;
-            const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-            const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-            onMove?.(draggingId, nx, nz);
-          }}
-          onPointerUp={(e) => {
-            if (tool !== "move") return;
-            if (draggingId) return;
-            if (!draggingId) return;
-            e.stopPropagation();
-            try {
-              e.nativeEvent?.target?.releasePointerCapture?.(e.pointerId);
-            } catch {}
-            setDraggingId(null);
-          }}
-          onPointerCancel={() => {
-            if (draggingId) setDraggingId(null);
-          }}
             onPointerMove={(e) => {
               if (tool !== "move") return;
               if (draggingId !== o.id) return;
@@ -310,61 +284,6 @@ function ZoomUI({ controlsRef, minDistance, maxDistance }) {
   );
 }
 
-
-function DragController({ draggingId, tool, onMove, setDraggingId, roomW, roomD, snapStep }) {
-  const { camera, gl } = useThree();
-  const raycaster = useMemo(() => new THREE.Raycaster(), []);
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-
-  useEffect(() => {
-    if (!draggingId) return;
-    if (tool !== "move") return;
-
-    const el = gl?.domElement;
-    if (!el) return;
-
-    const onPointerMove = (ev) => {
-      if (ev.cancelable) ev.preventDefault();
-
-      const rect = el.getBoundingClientRect();
-      const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((ev.clientY - rect.top) / rect.height) * 2 - 1);
-
-      raycaster.setFromCamera({ x, y }, camera);
-
-      const hit = new THREE.Vector3();
-      const ok = raycaster.ray.intersectPlane(plane, hit);
-      if (!ok) return;
-
-      const x0 = snap(hit.x, snapStep);
-      const z0 = snap(hit.z, snapStep);
-
-      const margin = 0.25;
-      const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-      const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-
-      onMove?.(draggingId, nx, nz);
-    };
-
-    const onPointerUp = (ev) => {
-      if (ev.cancelable) ev.preventDefault();
-      setDraggingId(null);
-    };
-
-    window.addEventListener("pointermove", onPointerMove, { passive: false });
-    window.addEventListener("pointerup", onPointerUp, { passive: false });
-    window.addEventListener("pointercancel", onPointerUp, { passive: false });
-
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
-    };
-  }, [draggingId, tool, gl, camera, raycaster, plane, roomW, roomD, snapStep, onMove, setDraggingId]);
-
-  return null;
-}
-
 export default function StudioScene({
   objects,
   selectedId,
@@ -386,7 +305,6 @@ export default function StudioScene({
   return (
     <div className="relative h-full w-full">
       <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
-        <DragController draggingId={draggingId} tool={tool} onMove={onMove} setDraggingId={setDraggingId} roomW={roomW} roomD={roomD} snapStep={snapStep} />
         {/* Licht */}
         <ambientLight intensity={0.55} />
         <directionalLight
