@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, TransformControls } from "@react-three/drei";
+import * as THREE from "three";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { OrbitControls, Grid, Edges } from "@react-three/drei";
 
 function colorToHex(name) {
   switch (name) {
@@ -91,19 +92,9 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               }
             }}
             onPointerMove={(e) => {
+              // Dragging is handled globally by DragMoveController (so walls/camera never block it).
               if (tool !== "move") return;
-              if (draggingId !== o.id) return;
-
-              const gp = groundPointFromRay(e.ray);
-              if (!gp) return;
-
-              const x0 = snap(gp.x, snapStep);
-              const z0 = snap(gp.z, snapStep);
-              const margin = 0.25;
-              const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-              const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
-
-              onMove?.(o.id, nx, nz);
+              if (draggingId) return;
             }}
             onPointerUp={(e) => {
               if (tool !== "move") return;
@@ -140,6 +131,207 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
   );
 }
 
+
+function Room({ roomW, roomD, wallH, showWalls }) {
+  const { camera } = useThree();
+
+  // Determine which wall faces the camera the most (option 3: auto-hide)
+  const hiddenWall = useMemo(() => {
+    const center = new THREE.Vector3(0, wallH / 2, 0);
+    const camDir = new THREE.Vector3().subVectors(camera.position, center).normalize();
+
+    const candidates = [
+      { key: "back", normal: new THREE.Vector3(0, 0, -1) },
+      { key: "front", normal: new THREE.Vector3(0, 0, 1) },
+      { key: "left", normal: new THREE.Vector3(-1, 0, 0) },
+      { key: "right", normal: new THREE.Vector3(1, 0, 0) },
+    ];
+
+    let best = candidates[0].key;
+    let bestDot = -Infinity;
+    for (const c of candidates) {
+      const d = camDir.dot(c.normal);
+      if (d > bestDot) {
+        bestDot = d;
+        best = c.key;
+      }
+    }
+    return best;
+  }, [camera.position.x, camera.position.y, camera.position.z, roomW, roomD, wallH]);
+
+  if (!showWalls) return null;
+
+  const wallMat = (
+    <meshStandardMaterial
+      color="#f2f2f2"
+      roughness={0.95}
+      metalness={0}
+      transparent
+      opacity={0.35} // option 2: ghost walls so you can keep seeing inside
+    />
+  );
+
+  // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
+  const noRaycast = () => null;
+
+  const renderWall = (key, props, geomArgs) => {
+    // option 1 + option 3: always keep the camera-facing wall open (hidden)
+    if (hiddenWall === key) return null;
+    return (
+      <mesh {...props} raycast={noRaycast} castShadow receiveShadow>
+        <boxGeometry args={geomArgs} />
+        {wallMat}
+      </mesh>
+    );
+  };
+
+  return (
+    <group>
+      {renderWall("back", { position: [0, wallH / 2, -roomD / 2] }, [roomW, wallH, 0.1])}
+      {renderWall("front", { position: [0, wallH / 2, roomD / 2] }, [roomW, wallH, 0.1])}
+      {renderWall("left", { position: [-roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD])}
+      {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD])}
+    </group>
+  );
+}
+
+function DragMoveController({ tool, draggingId, setDraggingId, onMove, snapStep, roomW, roomD }) {
+  const { camera, gl } = useThree();
+
+  // A tiny, robust drag loop that does NOT depend on R3F pointer events hitting the mesh.
+  // It always projects the pointer onto the ground plane (y=0).
+  useEffect(() => {
+    if (tool !== "move") return;
+    if (!draggingId) return;
+    if (!gl?.domElement) return;
+
+    const el = gl.domElement;
+
+    const onMoveEvt = (ev) => {
+      // Pointer might be outside the canvas; still handle it.
+      const rect = el.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width;
+      const y = (ev.clientY - rect.top) / rect.height;
+
+      const ndcX = x * 2 - 1;
+      const ndcY = -(y * 2 - 1);
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+
+      const ray = raycaster.ray;
+      const gp = groundPointFromRay(ray);
+      if (!gp) return;
+
+      const x0 = snap(gp.x, snapStep);
+      const z0 = snap(gp.z, snapStep);
+
+      const margin = 0.25;
+      const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+      const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+
+      onMove?.(draggingId, nx, nz);
+    };
+
+    const onUpEvt = () => {
+      setDraggingId(null);
+    };
+
+    // Listen on window so dragging keeps working even if the pointer leaves the canvas.
+    window.addEventListener("pointermove", onMoveEvt, { passive: true });
+    window.addEventListener("pointerup", onUpEvt, { passive: true });
+    window.addEventListener("pointercancel", onUpEvt, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointermove", onMoveEvt);
+      window.removeEventListener("pointerup", onUpEvt);
+      window.removeEventListener("pointercancel", onUpEvt);
+    };
+  }, [tool, draggingId, onMove, snapStep, roomW, roomD, camera, gl, setDraggingId]);
+
+  return null;
+}
+
+
+function ZoomUI({ controlsRef, minDistance, maxDistance }) {
+  const [t, setT] = useState(0.35); // 0..1
+  const rafLock = useRef(false);
+
+  // Keep UI in sync with camera distance (lightweight)
+  useFrame(() => {
+    if (rafLock.current) return;
+    const c = controlsRef.current;
+    if (!c) return;
+    const dist = c.getDistance();
+    const nextT = (dist - minDistance) / (maxDistance - minDistance);
+    const clamped = Math.min(1, Math.max(0, nextT));
+    // avoid rerender spam
+    if (Math.abs(clamped - t) > 0.02) setT(clamped);
+  });
+
+  const setDistance = (nextT) => {
+    const c = controlsRef.current;
+    if (!c) return;
+
+    const clamped = Math.min(1, Math.max(0, nextT));
+    const dist = minDistance + clamped * (maxDistance - minDistance);
+
+    // Zoom should happen towards the grid (target on y=0)
+    const target = c.target.clone();
+    target.y = 0;
+    c.target.copy(target);
+
+    const dir = new THREE.Vector3().subVectors(c.object.position, c.target).normalize();
+    c.object.position.copy(c.target.clone().add(dir.multiplyScalar(dist)));
+    c.update();
+
+    rafLock.current = true;
+    setT(clamped);
+    // release lock shortly after so useFrame can resync
+    setTimeout(() => {
+      rafLock.current = false;
+    }, 50);
+  };
+
+  return (
+    <div className="absolute right-3 bottom-3 z-20 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
+      <button
+        type="button"
+        className="h-9 w-9 rounded-lg border border-black/10 bg-white text-lg leading-none hover:bg-black/5 active:scale-[0.98]"
+        onClick={() => setDistance(t + 0.06)}
+        aria-label="Zoom in"
+        title="Zoom in"
+      >
+        +
+      </button>
+
+      <div className="flex h-9 items-center">
+        <input
+          aria-label="Zoom slider"
+          title="Zoom"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={t}
+          onChange={(e) => setDistance(Number(e.target.value))}
+          className="w-28"
+        />
+      </div>
+
+      <button
+        type="button"
+        className="h-9 w-9 rounded-lg border border-black/10 bg-white text-lg leading-none hover:bg-black/5 active:scale-[0.98]"
+        onClick={() => setDistance(t - 0.06)}
+        aria-label="Zoom out"
+        title="Zoom out"
+      >
+        –
+      </button>
+    </div>
+  );
+}
+
 export default function StudioScene({
   objects,
   selectedId,
@@ -157,8 +349,9 @@ export default function StudioScene({
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
+  const controlsRef = useRef(null);
   return (
-    <div className="h-full w-full">
+    <div className="relative h-full w-full">
       <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={0.55} />
@@ -208,34 +401,18 @@ export default function StudioScene({
           <meshStandardMaterial color="#ffffff" transparent opacity={0} />
         </mesh>
 
-        {/* Room walls (template) */}
-        {showWalls && (
-          <group>
-            {/* Back wall */}
-            <mesh position={[0, wallH / 2, -roomD / 2]} castShadow receiveShadow>
-              <boxGeometry args={[roomW, wallH, 0.1]} />
-              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
-            </mesh>
+        {/* Room walls */}
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} />
+        <DragMoveController
+          tool={tool}
+          draggingId={draggingId}
+          setDraggingId={setDraggingId}
+          onMove={onMove}
+          snapStep={snapStep}
+          roomW={roomW}
+          roomD={roomD}
+        />
 
-            {/* Front wall */}
-            <mesh position={[0, wallH / 2, roomD / 2]} castShadow receiveShadow>
-              <boxGeometry args={[roomW, wallH, 0.1]} />
-              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
-            </mesh>
-
-            {/* Left wall */}
-            <mesh position={[-roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
-              <boxGeometry args={[0.1, wallH, roomD]} />
-              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
-            </mesh>
-
-            {/* Right wall */}
-            <mesh position={[roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
-              <boxGeometry args={[0.1, wallH, roomD]} />
-              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
-            </mesh>
-          </group>
-        )}
 
 
         {/* Blocks */}
@@ -258,13 +435,20 @@ export default function StudioScene({
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
         <OrbitControls
+          ref={controlsRef}
           makeDefault
           enabled={!draggingId}
           enableDamping
           dampingFactor={0.08}
           rotateSpeed={0.7}
-          zoomSpeed={0.8}
-          panSpeed={0.6}
+          enableZoom
+          zoomSpeed={1.0}
+          enablePan={false}
+          minDistance={2.5}
+          maxDistance={Math.max(10, roomW + roomD)}
+          minPolarAngle={0.2}
+          maxPolarAngle={Math.PI / 2 - 0.1}
+          target={[0, 0, 0]}
         />
       </Canvas>
     </div>
