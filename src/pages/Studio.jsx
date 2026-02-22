@@ -77,6 +77,11 @@ export default function Studio() {
     });
     setObjects(prev.objects);
     setSelectedId(prev.selectedId ?? null);
+    setTemplateId(prev.templateId ?? templateId);
+    setRoomW(typeof prev.roomW === "number" ? prev.roomW : roomW);
+    setRoomD(typeof prev.roomD === "number" ? prev.roomD : roomD);
+    setWallH(typeof prev.wallH === "number" ? prev.wallH : wallH);
+    setShowWalls(typeof prev.showWalls === "boolean" ? prev.showWalls : showWalls);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(redoStackRef.current.length > 0);
   }
@@ -96,6 +101,11 @@ export default function Studio() {
     });
     setObjects(nxt.objects);
     setSelectedId(nxt.selectedId ?? null);
+    setTemplateId(nxt.templateId ?? templateId);
+    setRoomW(typeof nxt.roomW === "number" ? nxt.roomW : roomW);
+    setRoomD(typeof nxt.roomD === "number" ? nxt.roomD : roomD);
+    setWallH(typeof nxt.wallH === "number" ? nxt.wallH : wallH);
+    setShowWalls(typeof nxt.showWalls === "boolean" ? nxt.showWalls : showWalls);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(redoStackRef.current.length > 0);
   }
@@ -265,6 +275,17 @@ export default function Studio() {
     if (tool !== "move") return;
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    // Keep blocks inside the room (same margin as placement)
+    const margin = 0.25;
+    const minX = -roomW / 2 + margin;
+    const maxX = roomW / 2 - margin;
+    const minZ = -roomD / 2 + margin;
+    const maxZ = roomD / 2 - margin;
+
+    const cx = clamp(x, minX, maxX);
+    const cz = clamp(z, minZ, maxZ);
+
     const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
     const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
 
