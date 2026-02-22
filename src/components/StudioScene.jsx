@@ -84,15 +84,10 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               if (tool === "move") {
                 onMoveStart?.(o.id);
                 setDraggingId(o.id);
-                try {
-                  e.target?.setPointerCapture?.(e.pointerId);
-                } catch {
-                  // ignore if not supported
-                }
               }
             }}
             onPointerMove={(e) => {
-              // Dragging is handled globally by DragMoveController (so walls/camera never block it).
+              // Dragging is handled globally by DragMoveController (so walls never block it).
               if (tool !== "move") return;
               if (draggingId) return;
             }}
@@ -224,11 +219,13 @@ function DragMoveController({ tool, draggingId, setDraggingId, onMove, snapStep,
       if (!gp) return;
 
       const x0 = snap(gp.x, snapStep);
-      const z0 = snap(gp.z, snapStep);
+      const z0 = snap(gp.z, snapStep);      const margin = 0.25;
 
-      const margin = 0.25;
-      const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-      const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+      const rw = typeof roomW === "number" && Number.isFinite(roomW) && roomW > 0 ? roomW : null;
+      const rd = typeof roomD === "number" && Number.isFinite(roomD) && roomD > 0 ? roomD : null;
+
+      const nx = rw ? clamp(x0, -rw / 2 + margin, rw / 2 - margin) : x0;
+      const nz = rd ? clamp(z0, -rd / 2 + margin, rd / 2 - margin) : z0;
 
       onMove?.(draggingId, nx, nz);
     };
@@ -412,7 +409,6 @@ export default function StudioScene({
           roomW={roomW}
           roomD={roomD}
         />
-
 
 
         {/* Blocks */}
