@@ -115,6 +115,19 @@ export default function Studio() {
     setObjects((prev) => [...prev, newObj]);
     setSelectedId(id);
   }
+  function handleMoveAt(id, x, z) {
+    // Move only when the tool is "move"
+    if (tool !== "move") return;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const px = clamp(0.5 + x / 10, 0, 1);
+    const py = clamp(0.5 + z / 10, 0, 1);
+
+    setObjects((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, x, z, px, py } : o))
+    );
+  }
+
 
   function handleObjectClick3D(id) {
     if (tool === "delete") {
@@ -186,7 +199,7 @@ export default function Studio() {
             <div className="mt-3 grid gap-2">
               <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
               <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
-              <ToolButton label="Verplaats (later)" active={tool === "move"} onClick={() => setTool("move")} />
+              <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
               <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
             </div>
 
@@ -195,6 +208,7 @@ export default function Studio() {
               <ul className="mt-2 list-disc space-y-1 pl-4">
                 <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
                 <li>Klik op een blok om te selecteren.</li>
+                <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
                 <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
               </ul>
             </div>
@@ -223,6 +237,7 @@ export default function Studio() {
                 tool={tool}
                 onPlaceAt={handlePlaceAt}
                 onObjectClick={handleObjectClick3D}
+                onMove={handleMoveAt}
               />
             </div>
           </section>
