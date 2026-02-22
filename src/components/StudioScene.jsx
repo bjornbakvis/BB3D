@@ -227,21 +227,28 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
   return null;
 }
 
-function ZoomUI({ controlsRef, minDistance, maxDistance }) {
+function ZoomOverlay({ controlsRef, minDistance, maxDistance }) {
   const [t, setT] = useState(0.35); // 0..1
   const rafLock = useRef(false);
 
-  // Keep UI in sync with camera distance (lightweight)
-  useFrame(() => {
-    if (rafLock.current) return;
-    const c = controlsRef.current;
-    if (!c) return;
-    const dist = c.getDistance();
-    const nextT = (dist - minDistance) / (maxDistance - minDistance);
-    const clamped = Math.min(1, Math.max(0, nextT));
-    // avoid rerender spam
-    if (Math.abs(clamped - t) > 0.02) setT(clamped);
-  });
+  // Keep UI in sync with camera distance (outside Canvas, so we use rAF)
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      if (!rafLock.current) {
+        const c = controlsRef.current;
+        if (c) {
+          const dist = c.getDistance();
+          const nextT = (dist - minDistance) / (maxDistance - minDistance);
+          const clamped = Math.min(1, Math.max(0, nextT));
+          setT((prev) => (Math.abs(clamped - prev) > 0.02 ? clamped : prev));
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [controlsRef, minDistance, maxDistance]);
 
   const setDistance = (nextT) => {
     const c = controlsRef.current;
@@ -261,46 +268,43 @@ function ZoomUI({ controlsRef, minDistance, maxDistance }) {
 
     rafLock.current = true;
     setT(clamped);
-    // release lock shortly after so useFrame can resync
     setTimeout(() => {
       rafLock.current = false;
     }, 50);
   };
 
   return (
-    <div className="absolute right-3 bottom-3 z-20 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
+    <div className="pointer-events-auto absolute right-3 bottom-3 z-30 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
       <button
         type="button"
-        className="h-9 w-9 rounded-lg border border-black/10 bg-white text-lg leading-none hover:bg-black/5 active:scale-[0.98]"
-        onClick={() => setDistance(t + 0.06)}
+        className="h-9 w-9 rounded-lg border border-black/10 bg-white hover:bg-black/5 active:scale-[0.98]"
+        onClick={() => setDistance(t - 0.08)}
+        aria-label="Zoom uit"
+        title="Zoom uit"
+      >
+        –
+      </button>
+
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={t}
+        onChange={(e) => setDistance(parseFloat(e.target.value))}
+        className="w-28 accent-black"
+        aria-label="Zoom"
+        title="Zoom"
+      />
+
+      <button
+        type="button"
+        className="h-9 w-9 rounded-lg border border-black/10 bg-white hover:bg-black/5 active:scale-[0.98]"
+        onClick={() => setDistance(t + 0.08)}
         aria-label="Zoom in"
         title="Zoom in"
       >
         +
-      </button>
-
-      <div className="flex h-9 items-center">
-        <input
-          aria-label="Zoom slider"
-          title="Zoom"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={t}
-          onChange={(e) => setDistance(Number(e.target.value))}
-          className="w-28"
-        />
-      </div>
-
-      <button
-        type="button"
-        className="h-9 w-9 rounded-lg border border-black/10 bg-white text-lg leading-none hover:bg-black/5 active:scale-[0.98]"
-        onClick={() => setDistance(t - 0.06)}
-        aria-label="Zoom out"
-        title="Zoom out"
-      >
-        –
       </button>
     </div>
   );
@@ -412,10 +416,10 @@ export default function StudioScene({
           maxPolarAngle={Math.PI / 2 - 0.1}
           target={[0, 0, 0]}
         />
-        <Html fullscreen>
-          <ZoomUI controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
-        </Html>
-      </Canvas>
+</Canvas>
+
+      {/* Zoom UI overlay (DOM) */}
+      <ZoomOverlay controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
     </div>
   );
 }
