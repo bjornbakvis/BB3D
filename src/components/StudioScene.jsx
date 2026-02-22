@@ -193,46 +193,83 @@ function Room({ roomW, roomD, wallH, showWalls }) {
 function DragMoveController({ tool, draggingId, setDraggingId, onMove, snapStep, roomW, roomD }) {
   const { camera, gl } = useThree();
 
-  // A tiny, robust drag loop that does NOT depend on R3F pointer events hitting the mesh.
-  // It always projects the pointer onto the ground plane (y=0).
+  // Robust drag controller:
+  // - listeners are attached ONCE (no timing gap on first move)
+  // - uses refs so it always sees latest tool/draggingId/onMove
+  const toolRef = useRef(tool);
+  const dragRef = useRef(draggingId);
+  const moveRef = useRef(onMove);
+  const snapRef = useRef(snapStep);
+  const roomWRef = useRef(roomW);
+  const roomDRef = useRef(roomD);
+  const camRef = useRef(camera);
+  const elRef = useRef(null);
+
+  useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { dragRef.current = draggingId; }, [draggingId]);
+  useEffect(() => { moveRef.current = onMove; }, [onMove]);
+  useEffect(() => { snapRef.current = snapStep; }, [snapStep]);
+  useEffect(() => { roomWRef.current = roomW; }, [roomW]);
+  useEffect(() => { roomDRef.current = roomD; }, [roomD]);
+  useEffect(() => { camRef.current = camera; }, [camera]);
+  useEffect(() => { elRef.current = gl?.domElement || null; }, [gl]);
+
   useEffect(() => {
-    if (tool !== "move") return;
-    if (!draggingId) return;
-    if (!gl?.domElement) return;
-
-    const el = gl.domElement;
-
     const onMoveEvt = (ev) => {
-      // Pointer might be outside the canvas; still handle it.
+      if (toolRef.current !== "move") return;
+      const id = dragRef.current;
+      if (!id) return;
+
+      const el = elRef.current;
+      const cam = camRef.current;
+      const moveCb = moveRef.current;
+      if (!el || !cam || !moveCb) return;
+
       const rect = el.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
       const x = (ev.clientX - rect.left) / rect.width;
       const y = (ev.clientY - rect.top) / rect.height;
+
+      // If pointer is far outside the canvas, ignore (prevents wild jumps)
+      if (x < -0.2 || x > 1.2 || y < -0.2 || y > 1.2) return;
 
       const ndcX = x * 2 - 1;
       const ndcY = -(y * 2 - 1);
 
       const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+      raycaster.setFromCamera({ x: ndcX, y: ndcY }, cam);
 
-      const ray = raycaster.ray;
-      const gp = groundPointFromRay(ray);
+      const gp = groundPointFromRay(raycaster.ray);
       if (!gp) return;
 
-      const x0 = snap(gp.x, snapStep);
-      const z0 = snap(gp.z, snapStep);
+      const step = snapRef.current || 0.5;
+      const x0 = snap(gp.x, step);
+      const z0 = snap(gp.z, step);
 
-      const margin = 0.25;
-      const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
-      const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+      const rw = roomWRef.current;
+      const rd = roomDRef.current;
 
-      onMove?.(draggingId, nx, nz);
+      // If room dimensions are missing, do not clamp (still allow moving)
+      let nx = x0;
+      let nz = z0;
+
+      if (typeof rw === "number" && typeof rd === "number" && isFinite(rw) && isFinite(rd) && rw > 0.5 && rd > 0.5) {
+        const margin = 0.25;
+        nx = clamp(x0, -rw / 2 + margin, rw / 2 - margin);
+        nz = clamp(z0, -rd / 2 + margin, rd / 2 - margin);
+      }
+
+      if (!isFinite(nx) || !isFinite(nz)) return;
+      moveCb(id, nx, nz);
     };
 
     const onUpEvt = () => {
+      if (toolRef.current !== "move") return;
+      if (!dragRef.current) return;
       setDraggingId(null);
     };
 
-    // Listen on window so dragging keeps working even if the pointer leaves the canvas.
     window.addEventListener("pointermove", onMoveEvt, { passive: true });
     window.addEventListener("pointerup", onUpEvt, { passive: true });
     window.addEventListener("pointercancel", onUpEvt, { passive: true });
@@ -242,10 +279,11 @@ function DragMoveController({ tool, draggingId, setDraggingId, onMove, snapStep,
       window.removeEventListener("pointerup", onUpEvt);
       window.removeEventListener("pointercancel", onUpEvt);
     };
-  }, [tool, draggingId, onMove, snapStep, roomW, roomD, camera, gl, setDraggingId]);
+  }, [setDraggingId]);
 
   return null;
 }
+
 
 
 function ZoomUI({ controlsRef, minDistance, maxDistance }) {
