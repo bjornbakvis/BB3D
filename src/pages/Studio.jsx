@@ -1,598 +1,272 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box } from "lucide-react";
-import StudioScene from "../components/StudioScene.jsx";
+import React, { useMemo, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Grid, Edges, TransformControls } from "@react-three/drei";
 
-function nowTime() {
-  const d = new Date();
-  return d.toLocaleString();
+function colorToHex(name) {
+  switch (name) {
+    case "Wood":
+      return "#a67c52";
+    case "Concrete":
+      return "#a0a0a0";
+    case "White":
+      return "#f1f1f1";
+    case "Black":
+      return "#222222";
+    case "Stone":
+    default:
+      return "#b9b9b9";
+  }
 }
 
-function clsx(...arr) {
-  return arr.filter(Boolean).join(" ");
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
 }
 
-export default function Studio() {
-  // Project (stap 2)
-  const [projectName, setProjectName] = useState("Nieuw ontwerp");
-  const [lastSaved, setLastSaved] = useState("");
+function snap(v, step) {
+  if (!step) return v;
+  return Math.round(v / step) * step;
+}
 
-  // Ruimte / templates (Stap A)
-  const TEMPLATES = useMemo(() => ({
-    badkamer: { label: "Badkamer", roomW: 3.0, roomD: 2.0, wallH: 2.4, showWalls: true },
-    toilet: { label: "Toilet", roomW: 1.2, roomD: 1.0, wallH: 2.4, showWalls: true },
-    tuin: { label: "Tuin", roomW: 8.0, roomD: 5.0, wallH: 1.2, showWalls: true },
-    leeg: { label: "Lege ruimte", roomW: 6.0, roomD: 6.0, wallH: 2.4, showWalls: false },
-  }), []);
+function groundPointFromRay(ray) {
+  // Intersect the pointer ray with the ground plane at y=0
+  const o = ray.origin;
+  const d = ray.direction;
+  if (!d || Math.abs(d.y) < 1e-6) return null;
+  const t = -o.y / d.y;
+  if (!isFinite(t) || t < 0) return null;
+  return { x: o.x + d.x * t, z: o.z + d.z * t };
+}
 
-  const [templateId, setTemplateId] = useState("badkamer");
-  const [roomW, setRoomW] = useState(TEMPLATES.badkamer.roomW);
-  const [roomD, setRoomD] = useState(TEMPLATES.badkamer.roomD);
-  const [wallH, setWallH] = useState(TEMPLATES.badkamer.wallH);
-  const [showWalls, setShowWalls] = useState(TEMPLATES.badkamer.showWalls);
-
-
-  // Editor state (stap 1)
-  const [tool, setTool] = useState("select"); // select | place | move | delete
-  const [objects, setObjects] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-
-  // Undo/Redo (A)
-  const undoStackRef = useRef([]); // stack of {objects, selectedId}
-  const redoStackRef = useRef([]); // stack of {objects, selectedId}
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-
-  function deepClone(v) {
-    return JSON.parse(JSON.stringify(v));
-  }
-
-  function pushUndoSnapshot(nextRedoClear = true) {
-    // Store current state before a change
-    undoStackRef.current.push({
-      objects: deepClone(objects),
-      selectedId,
-      templateId,
-      roomW,
-      roomD,
-      wallH,
-      showWalls,
+function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId, setSelectedMesh, roomW, roomD }) {
+  // NOTE: we support both (x,z) and (px,py) so we don't break earlier data
+  const mapped = useMemo(() => {
+    return (objects || []).map((o) => {
+      const hasXZ = typeof o.x === "number" && typeof o.z === "number";
+      const x = hasXZ ? o.x : typeof o.px === "number" ? (o.px - 0.5) * 10 : 0;
+      const z = hasXZ ? o.z : typeof o.py === "number" ? (o.py - 0.5) * 10 : 0;
+      return { ...o, _x: x, _z: z };
     });
-    if (nextRedoClear) redoStackRef.current = [];
-    setCanUndo(undoStackRef.current.length > 0);
-    setCanRedo(redoStackRef.current.length > 0);
-  }
-
-  function undo() {
-    const prev = undoStackRef.current.pop();
-    if (!prev) return;
-    // Move current into redo
-    redoStackRef.current.push({
-      objects: deepClone(objects),
-      selectedId,
-      templateId,
-      roomW,
-      roomD,
-      wallH,
-      showWalls,
-    });
-    setObjects(prev.objects);
-    setSelectedId(prev.selectedId ?? null);
-    setCanUndo(undoStackRef.current.length > 0);
-    setCanRedo(redoStackRef.current.length > 0);
-  }
-
-  function redo() {
-    const nxt = redoStackRef.current.pop();
-    if (!nxt) return;
-    // Move current into undo
-    undoStackRef.current.push({
-      objects: deepClone(objects),
-      selectedId,
-      templateId,
-      roomW,
-      roomD,
-      wallH,
-      showWalls,
-    });
-    setObjects(nxt.objects);
-    setSelectedId(nxt.selectedId ?? null);
-    setCanUndo(undoStackRef.current.length > 0);
-    setCanRedo(redoStackRef.current.length > 0);
-  }
-
-  // Keyboard shortcuts: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y
-  useEffect(() => {
-    function onKeyDown(e) {
-      const key = (e.key || "").toLowerCase();
-      const isMac = /mac/i.test(navigator.platform || "");
-      const mod = isMac ? e.metaKey : e.ctrlKey;
-
-      if (!mod) return;
-
-      if (key === "z" && e.shiftKey) {
-        e.preventDefault();
-        redo();
-        return;
-      }
-      if (key === "z") {
-        e.preventDefault();
-        undo();
-        return;
-      }
-      if (key === "y") {
-        e.preventDefault();
-        redo();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [objects, selectedId]);
-
-  // Default “block” dat we plaatsen
-  const defaultBlock = useMemo(
-    () => ({
-      w: 1.2,
-      h: 0.9,
-      d: 0.6,
-      color: "Stone",
-      y: 0,
-      rotY: 0, // degrees
-
-    }),
-    []
-  );
-
-  const selectedObj = useMemo(
-    () => objects.find((o) => o.id === selectedId) || null,
-    [objects, selectedId]
-  );
-
-  function newProject() {
-    pushUndoSnapshot();
-    setProjectName("Nieuw ontwerp");
-    setObjects([]);
-    setSelectedId(null);
-    setTool("select");
-    setLastSaved("");
-  }
-
-  function saveProject() {
-    // Nog geen database: we “doen alsof” we opslaan
-    setLastSaved(nowTime());
-  }
-
-  function applyTemplate(nextId) {
-    const t = TEMPLATES[nextId] || TEMPLATES.badkamer;
-    pushUndoSnapshot();
-
-    setTemplateId(nextId);
-    setRoomW(t.roomW);
-    setRoomD(t.roomD);
-    setWallH(t.wallH);
-    setShowWalls(t.showWalls);
-
-    // Start fresh for the new template (keeps it predictable)
-    setObjects([]);
-    setSelectedId(null);
-    setTool("select");
-  }
-
-
-  function onCanvasClick(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
-
-    // Klik op leeg canvas met tool "place" -> plaats blok
-    if (tool === "place") {
-      const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-      const newObj = {
-        id,
-        type: "Block",
-        // we bewaren pos als percentages zodat het responsive blijft
-        px: x / rect.width,
-        py: y / rect.height,
-        ...defaultBlock,
-      };
-      setObjects((prev) => [...prev, newObj]);
-      setSelectedId(id);
-      return;
-    }
-
-    // Anders: klik op leeg canvas -> deselect
-    setSelectedId(null);
-  }
-
-  function onObjectClick(e, id) {
-    e.stopPropagation();
-
-    if (tool === "delete") {
-      pushUndoSnapshot();
-      setObjects((prev) => prev.filter((o) => o.id !== id));
-      if (selectedId === id) setSelectedId(null);
-      return;
-    }
-
-    setSelectedId(id);
-  }
-
-  function updateSelected(patch) {
-    if (!selectedObj) return;
-    pushUndoSnapshot();
-    setObjects((prev) =>
-      prev.map((o) => (o.id === selectedObj.id ? { ...o, ...patch } : o))
-    );
-  }
-
-  function handlePlaceAt(x, z) {
-    if (tool !== "place") return;
-    pushUndoSnapshot();
-
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    // Keep blocks inside the room (simple margin so it feels consistent)
-    const margin = 0.25;
-    const minX = -roomW / 2 + margin;
-    const maxX = roomW / 2 - margin;
-    const minZ = -roomD / 2 + margin;
-    const maxZ = roomD / 2 - margin;
-    const cx = clamp(x, minX, maxX);
-    const cz = clamp(z, minZ, maxZ);
-    // Keep a lightweight 0..1 mapping too (based on current room size)
-    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
-    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
-
-    const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-    const newObj = {
-      id,
-      type: "Block",
-      x: cx,
-      z: cz,
-      px,
-      py,
-      ...defaultBlock,
-    };
-    setObjects((prev) => [...prev, newObj]);
-    setSelectedId(id);
-  }
-  function handleMoveStart(id) {
-    if (tool !== "move") return;
-    pushUndoSnapshot();
-  }
-
-  function handleMoveAt(id, x, z) {
-    // Move only when the tool is "move"
-    if (tool !== "move") return;
-
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
-    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
-
-    setObjects((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, x: cx, z: cz, px, py } : o))
-    );
-  }
-
-
-  function handleObjectClick3D(id) {
-    if (tool === "delete") {
-      pushUndoSnapshot();
-      setObjects((prev) => prev.filter((o) => o.id !== id));
-      if (selectedId === id) setSelectedId(null);
-      return;
-    }
-    setSelectedId(id);
-  }
-
-  // “Canvas” styling: grid look (zonder echte 3D)
-  const gridStyle = {
-    backgroundColor: "#ffffff",
-    backgroundImage:
-      "linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)",
-    backgroundSize: "36px 36px",
-  };
+  }, [objects]);
 
   return (
-    <main className="min-h-[calc(100vh-64px)] bg-[#f7f7f8]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8">
-        {/* Header / Project bar */}
-        <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 bg-black/5">
-                <Box size={18} />
-              </span>
-              <div>
-                <div className="text-sm font-semibold text-black/85">Studio</div>
-                <div className="text-xs text-black/50">
-                  {lastSaved ? `Laatst opgeslagen: ${lastSaved}` : "Nog niet opgeslagen"}
-                </div>
-              </div>
-            </div>
+    <>
+      {mapped.map((o) => {
+        const isSel = o.id === selectedId;
+        const isHover = o.id === hoverId;
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20 sm:w-[260px]"
-                placeholder="Projectnaam"
+        const w = Number(o.w || 1);
+        const h = Number(o.h || 1);
+        const d = Number(o.d || 1);
+
+        const baseColor = colorToHex(o.color);
+
+        return (
+          <mesh
+            key={o.id}
+            position={[o._x, (h / 2) + (Number(o.y || 0)), o._z]}
+            rotation={[0, (Number(o.rotY || 0) * Math.PI) / 180, 0]}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              setHoverId?.(o.id);
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              setHoverId?.((prev) => (prev === o.id ? null : prev));
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+
+              // Always allow select/delete behavior via existing handler
+              onObjectClick?.(o.id);
+
+              // Start dragging only when Move tool is active
+              if (tool === "move") {
+                onMoveStart?.(o.id);
+                setDraggingId(o.id);
+                try {
+                  e.target?.setPointerCapture?.(e.pointerId);
+                } catch {
+                  // ignore if not supported
+                }
+              }
+            }}
+            onPointerMove={(e) => {
+              if (tool !== "move") return;
+              if (draggingId !== o.id) return;
+
+              const gp = groundPointFromRay(e.ray);
+              if (!gp) return;
+
+              const x0 = snap(gp.x, snapStep);
+              const z0 = snap(gp.z, snapStep);
+              const margin = 0.25;
+              const nx = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+              const nz = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+
+              onMove?.(o.id, nx, nz);
+            }}
+            onPointerUp={(e) => {
+              if (tool !== "move") return;
+              if (draggingId !== o.id) return;
+
+              e.stopPropagation();
+              setDraggingId(null);
+            }}
+            onPointerCancel={() => {
+              if (draggingId === o.id) setDraggingId(null);
+            }}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[w, h, d]} />
+            <meshStandardMaterial
+              color={baseColor}
+              emissive={isSel ? "#222222" : isHover ? "#222222" : "#000000"}
+              emissiveIntensity={isSel ? 1.25 : isHover ? 0.45 : 0}
+              roughness={0.8}
+              metalness={0.05}
+            />
+            {(isSel || isHover) && (
+              <Edges
+                scale={1.01}
+                threshold={15}
+                color={isSel ? "#111111" : "#333333"}
               />
-
-              <button
-                onClick={newProject}
-                type="button"
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium text-black/80 shadow-sm hover:bg-black/5"
-              >
-                Nieuw project
-              </button>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={undo}
-                  type="button"
-                  disabled={!canUndo}
-                  className={clsx(
-                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
-                    canUndo
-                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
-                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={redo}
-                  type="button"
-                  disabled={!canRedo}
-                  className={clsx(
-                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
-                    canRedo
-                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
-                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  Redo
-                </button>
-              </div>
-
-              <button
-                onClick={saveProject}
-                type="button"
-                className="rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white shadow-sm hover:opacity-90"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Editor layout */}
-        <div className="mt-5 grid gap-4 md:grid-cols-[220px_1fr_280px]">
-          {/* LEFT: Tools */}
-          <aside className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="text-sm font-semibold text-black/80">Tools</div>
-            <div className="mt-3 grid gap-2">
-              <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
-              <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
-              <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
-              <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-              <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-              <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
-                <li>Klik op een blok om te selecteren.</li>
-                <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
-                <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
-              </ul>
-            </div>
-          </aside>
-
-          {/* CENTER: Canvas */}
-          <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-black/80">Werkvlak</div>
-                <div className="text-xs text-black/50">
-                  Tool: <span className="font-semibold text-black/70">{tool}</span> • Objecten:{" "}
-                  <span className="font-semibold text-black/70">{objects.length}</span>
-                </div>
-              </div>
-
-              <div className="text-xs text-black/45">
-                (3D komt hierna — dit is nu de “basis editor”)
-              </div>
-            </div>
-
-            <div className="mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10">
-              <StudioScene
-                objects={objects}
-                selectedId={selectedId}
-                tool={tool}
-                onPlaceAt={handlePlaceAt}
-                onObjectClick={handleObjectClick3D}
-                onMoveStart={handleMoveStart}
-                onMove={handleMoveAt}
-                roomW={roomW}
-                roomD={roomD}
-                wallH={wallH}
-                showWalls={showWalls}
-              />
-            </div>
-          </section>
-
-          {/* RIGHT: Properties */}
-          <aside className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="mb-4 rounded-2xl border border-black/10 bg-white p-4">
-              <div className="text-sm font-semibold text-black/80">Ruimte</div>
-              <div className="mt-2 grid gap-3">
-                <div>
-                  <div className="text-xs font-semibold text-black/70">Template</div>
-                  <select
-                    value={templateId}
-                    onChange={(e) => applyTemplate(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                  >
-                    {Object.entries(TEMPLATES).map(([key, t]) => (
-                      <option key={key} value={key}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <LabeledNumber
-                    label="Breedte (m)"
-                    value={roomW}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setRoomW(Math.max(0.5, v));
-                    }}
-                  />
-                  <LabeledNumber
-                    label="Diepte (m)"
-                    value={roomD}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setRoomD(Math.max(0.5, v));
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <LabeledNumber
-                    label="Muurhoogte (m)"
-                    value={wallH}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setWallH(Math.max(0.5, v));
-                    }}
-                  />
-                  <div className="rounded-2xl border border-black/10 bg-white p-4">
-                    <div className="text-xs font-semibold text-black/70">Muren</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        pushUndoSnapshot();
-                        setShowWalls((p) => !p);
-                      }}
-                      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
-                    >
-                      {showWalls ? "Aan" : "Uit"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-                  Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
-                </div>
-              </div>
-            </div>
-
-            <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
-
-            {!selectedObj ? (
-              <div className="mt-3 rounded-2xl border border-black/10 bg-black/5 p-4 text-sm text-black/60">
-                Klik op een object om eigenschappen te zien.
-              </div>
-            ) : (
-              <div className="mt-3 grid gap-3">
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="text-xs text-black/50">Geselecteerd</div>
-                  <div className="mt-1 text-sm font-semibold text-black/80">
-                    {selectedObj.type} • {selectedObj.id}
-                  </div>
-                </div>
-
-                <LabeledNumber
-                  label="Breedte (w)"
-                  value={selectedObj.w}
-                  onChange={(v) => updateSelected({ w: v })}
-                />
-                <LabeledNumber
-                  label="Hoogte (h)"
-                  value={selectedObj.h}
-                  onChange={(v) => updateSelected({ h: v })}
-                />
-                <LabeledNumber
-                  label="Diepte (d)"
-                  value={selectedObj.d}
-                  onChange={(v) => updateSelected({ d: v })}
-                />
-
-                <LabeledNumber
-                  label="Hoogte boven vloer (y)"
-                  value={selectedObj.y ?? 0}
-                  step={0.1}
-                  onChange={(v) => updateSelected({ y: Math.max(0, v) })}
-                />
-
-                <LabeledNumber
-                  label="Rotatie (°)"
-                  value={selectedObj.rotY ?? 0}
-                  step={1}
-                  onChange={(v) => updateSelected({ rotY: v })}
-                />
-
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
-                  <select
-                    value={selectedObj.color}
-                    onChange={(e) => updateSelected({ color: e.target.value })}
-                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                  >
-                    <option>Stone</option>
-                    <option>Wood</option>
-                    <option>Concrete</option>
-                    <option>White</option>
-                    <option>Black</option>
-                  </select>
-                </div>
-
-                <div className="rounded-2xl border border-black/10 bg-black/5 p-4 text-xs text-black/60">
-                  <div className="font-semibold text-black/75">Volgende stap</div>
-                  <div className="mt-1">
-                    Dit werkvlak wordt straks een echte 3D scene. De objecten die je nu “plaatst”, gaan we dan
-                    echt als 3D blokken tekenen.
-                  </div>
-                </div>
-              </div>
             )}
-          </aside>
-        </div>
-      </div>
-    </main>
+</mesh>
+        );
+      })}
+    </>
   );
 }
 
-function ToolButton({ label, active, onClick }) {
+export default function StudioScene({
+  objects,
+  selectedId,
+  tool,
+  onPlaceAt,
+  onObjectClick,
+  onMoveStart,
+  onMove,
+  snapStep = 0.5,
+  roomW = 6,
+  roomD = 6,
+  wallH = 2.4,
+  showWalls = true,
+}) {
+  const [draggingId, setDraggingId] = useState(null);
+  const [hoverId, setHoverId] = useState(null);
+  const [selectedMesh, setSelectedMesh] = useState(null);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={clsx(
-        "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
-        active ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
-      )}
-    >
-      {label}
-    </button>
-  );
-}
+    <div className="h-full w-full">
+      <Canvas camera={{ position: [Math.max(6, roomW), Math.max(6, wallH + 3), Math.max(6, roomD)], fov: 50 }} shadows gl={{ antialias: true }}>
+        {/* Licht */}
+        <ambientLight intensity={0.55} />
+        <directionalLight
+          position={[6, 10, 4]}
+          intensity={1}
+          castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+        />
 
-function LabeledNumber({ label, value, onChange, step = 0.1 }) {
-  return (
-    <div className="rounded-2xl border border-black/10 bg-white p-4">
-      <div className="text-xs font-semibold text-black/70">{label}</div>
-      <input
-        type="number"
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-      />
+        {/* Grid vloer */}
+        <Grid
+          position={[0, 0, 0]}
+          args={[Math.max(6, roomW + 2), Math.max(6, roomD + 2)]}
+          cellSize={1}
+          cellThickness={0.5}
+          cellColor="#000000"
+          sectionSize={5}
+          sectionThickness={1}
+          sectionColor="#000000"
+          fadeDistance={30}
+          fadeStrength={1}
+        />
+
+        {/* Vloer (klikbaar) */}
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0, 0]}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+
+            // Place only when the tool is "place"
+            if (tool !== "place") return;
+
+            const p = e.point; // THREE.Vector3
+            const x0 = snap(p.x, snapStep);
+            const z0 = snap(p.z, snapStep);
+            const margin = 0.25;
+            const x = clamp(x0, -roomW / 2 + margin, roomW / 2 - margin);
+            const z = clamp(z0, -roomD / 2 + margin, roomD / 2 - margin);
+            onPlaceAt?.(x, z);
+          }}
+          receiveShadow
+        >
+          <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0} />
+        </mesh>
+
+        {/* Room walls (template) */}
+        {showWalls && (
+          <group>
+            {/* Back wall */}
+            <mesh position={[0, wallH / 2, -roomD / 2]} castShadow receiveShadow>
+              <boxGeometry args={[roomW, wallH, 0.1]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Front wall */}
+            <mesh position={[0, wallH / 2, roomD / 2]} castShadow receiveShadow>
+              <boxGeometry args={[roomW, wallH, 0.1]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Left wall */}
+            <mesh position={[-roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.1, wallH, roomD]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+
+            {/* Right wall */}
+            <mesh position={[roomW / 2, wallH / 2, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.1, wallH, roomD]} />
+              <meshStandardMaterial color="#f2f2f2" roughness={0.95} metalness={0} />
+            </mesh>
+          </group>
+        )}
+
+
+        {/* Blocks */}
+        <Blocks
+          objects={objects}
+          selectedId={selectedId}
+          tool={tool}
+          onObjectClick={onObjectClick}
+          onMoveStart={onMoveStart}
+          onMove={onMove}
+          snapStep={snapStep}
+          draggingId={draggingId}
+          setDraggingId={setDraggingId}
+          hoverId={hoverId}
+          setHoverId={setHoverId}
+          setSelectedMesh={setSelectedMesh}
+          roomW={roomW}
+          roomD={roomD}
+        />
+
+        {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
+        <OrbitControls
+          makeDefault
+          enabled={!draggingId}
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.7}
+          zoomSpeed={0.8}
+          panSpeed={0.6}
+        />
+      </Canvas>
     </div>
   );
 }
