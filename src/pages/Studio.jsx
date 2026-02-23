@@ -280,12 +280,14 @@ export default function Studio() {
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
 
     // --- STAPELEN (stacking) ---
-    // Als het object volledig "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
-    // Dit geeft: kastje + wastafel / kastje + blad, etc.
+    // Als het object "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
+    // Pro UX: in het midden van de kamer helpen we extra met een ruimere "capture zone" + auto-centre (Optie A).
     const stackTol = 0.06;
-    const stackMagnet = 0.28; // hoe "makkelijk" hij op een bovenkant klikt
+    const stackMagnet = 0.28; // hoe "makkelijk" hij op een bovenkant klikt (hoogte)
+    const stackCapture = 0.18; // extra marge in X/Z om stapelen makkelijker te maken (voor kleine onderdelen later)
     // Default: op de vloer. Als er een geldige bovenkant onder ons zit, klikken we daarop.
     let bestY = 0;
+    let bestCenter = null;
 
     for (const o of others) {
       const ox = Number(o.x ?? 0);
@@ -295,30 +297,39 @@ export default function Studio() {
 
       const { ex: oex, ez: oez } = rotatedExtents(o.w, o.d, o.rotY);
 
-      // Past onze footprint binnen de footprint van het andere object?
+      // Past onze footprint (bovenste object) binnen de footprint van het onderste object?
       if (oex + stackTol >= ex && oez + stackTol >= ez) {
-        const fitX = Math.abs(nx - ox) <= (oex - ex + stackTol);
-        const fitZ = Math.abs(nz - oz) <= (oez - ez + stackTol);
+        const maxDx = (oex - ex + stackTol);
+        const maxDz = (oez - ez + stackTol);
 
-        if (fitX && fitZ) {
-          // Helper: als je ongeveer bovenop zit, trekken we X/Z net binnen het 'pasgebied'
-          // zodat stapelen in het midden net zo makkelijk voelt als in een hoek.
-          const maxDx = (oex - ex + stackTol);
-          const maxDz = (oez - ez + stackTol);
-          nx = clamp(nx, ox - maxDx, ox + maxDx);
-          nz = clamp(nz, oz - maxDz, oz + maxDz);
+        // "Capture": je hoeft niet pixel-perfect te mikken, we pakken hem als je dichtbij genoeg zit.
+        const nearX = Math.abs(nx - ox) <= (maxDx + stackCapture);
+        const nearZ = Math.abs(nz - oz) <= (maxDz + stackCapture);
+
+        if (nearX && nearZ) {
           const topY = oy + oh;
 
           // Als we (ongeveer) boven het object zitten, mogen we klikken op de bovenkant.
-          // Dit is bewust ruim: je sleept in X/Z, en het object "klimt" dan naar boven als het past.
+          // Dit is bewust ruim: je sleept in X/Z, en het object "klimt" naar boven als het past.
           if (ny <= topY + stackMagnet) {
-            if (topY > bestY) bestY = topY;
+            // Optie A: auto-centre op het onderste object zodra stapelen actief is.
+            if (topY > bestY) {
+              bestY = topY;
+              bestCenter = { x: ox, z: oz };
+            }
           }
         }
       }
     }
 
-    ny = bestY;
+    if (bestY > 0) {
+      ny = bestY;
+      // Auto-centre, maar wel binnen de kamergrenzen.
+      nx = clamp(bestCenter.x, minX, maxX);
+      nz = clamp(bestCenter.z, minZ, maxZ);
+    } else {
+      ny = 0;
+    }
 
     const yOverlaps = (oy, oh) => {
       const eps = 1e-4;
