@@ -282,8 +282,8 @@ export default function Studio() {
     // --- STAPELEN (stacking) ---
     // Als het object volledig "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
     // Dit geeft: kastje + wastafel / kastje + blad, etc.
-    const stackTol = 0.02;
-    const stackMagnet = 0.18; // hoe "makkelijk" hij op een bovenkant klikt
+    const stackTol = 0.06;
+    const stackMagnet = 0.28; // hoe "makkelijk" hij op een bovenkant klikt
     // Default: op de vloer. Als er een geldige bovenkant onder ons zit, klikken we daarop.
     let bestY = 0;
 
@@ -301,6 +301,12 @@ export default function Studio() {
         const fitZ = Math.abs(nz - oz) <= (oez - ez + stackTol);
 
         if (fitX && fitZ) {
+          // Helper: als je ongeveer bovenop zit, trekken we X/Z net binnen het 'pasgebied'
+          // zodat stapelen in het midden net zo makkelijk voelt als in een hoek.
+          const maxDx = (oex - ex + stackTol);
+          const maxDz = (oez - ez + stackTol);
+          nx = clamp(nx, ox - maxDx, ox + maxDx);
+          nz = clamp(nz, oz - maxDz, oz + maxDz);
           const topY = oy + oh;
 
           // Als we (ongeveer) boven het object zitten, mogen we klikken op de bovenkant.
