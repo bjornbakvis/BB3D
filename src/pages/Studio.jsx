@@ -305,7 +305,7 @@ export default function Studio() {
         if (Math.abs(nz - touchBack) <= magnet) nz = touchBack;
       }
 
-      // Hard overlap prevention (push out on the smallest penetration)
+      // Hard overlap prevention (resolve overlap deterministically)
       const dx = nx - ox;
       const dz = nz - oz;
       const ax = Math.abs(dx);
@@ -314,18 +314,71 @@ export default function Studio() {
       const minAz = oez + ez;
 
       if (ax < minAx && az < minAz) {
-        const penX = minAx - ax;
-        const penZ = minAz - az;
+        const eps = 0.001;
 
-        if (penX < penZ) {
-          nx += (dx >= 0 ? 1 : -1) * (penX + 0.001);
-        } else {
-          nz += (dz >= 0 ? 1 : -1) * (penZ + 0.001);
+        const cx = nx;
+        const cz = nz;
+
+        // Try the 4 "touch faces" positions (left/right/front/back), and pick the closest one
+        // that is inside the room AND not overlapping.
+        const candidates = [
+          { x: ox + (minAx + eps), z: cz },
+          { x: ox - (minAx + eps), z: cz },
+          { x: cx, z: oz + (minAz + eps) },
+          { x: cx, z: oz - (minAz + eps) },
+        ];
+
+        let best = null;
+        let bestDist2 = Infinity;
+
+        for (const c of candidates) {
+          const tx = clamp(c.x, minX, maxX);
+          const tz = clamp(c.z, minZ, maxZ);
+
+          const adx = Math.abs(tx - ox);
+          const adz = Math.abs(tz - oz);
+
+          const stillOverlap = adx < minAx && adz < minAz;
+          if (stillOverlap) continue;
+
+          const d2 = (tx - cx) * (tx - cx) + (tz - cz) * (tz - cz);
+          if (d2 < bestDist2) {
+            bestDist2 = d2;
+            best = { x: tx, z: tz };
+          }
         }
 
-        // Re-clamp after push-out
-        nx = clamp(nx, minX, maxX);
-        nz = clamp(nz, minZ, maxZ);
+        if (best) {
+          nx = best.x;
+          nz = best.z;
+        } else {
+          // Fallback (should be rare): original smallest-penetration push-out
+          const penX = minAx - ax;
+          const penZ = minAz - az;
+
+          if (penX < penZ) {
+            nx += (dx >= 0 ? 1 : -1) * (penX + eps);
+          } else {
+            nz += (dz >= 0 ? 1 : -1) * (penZ + eps);
+          }
+
+          // Re-clamp after push-out
+          nx = clamp(nx, minX, maxX);
+          nz = clamp(nz, minZ, maxZ);
+
+          // If clamping prevented a full resolve (e.g. near a wall), push on the other axis too
+          const adx2 = Math.abs(nx - ox);
+          const adz2 = Math.abs(nz - oz);
+          if (adx2 < minAx && adz2 < minAz) {
+            if (penX < penZ) {
+              nz += (dz >= 0 ? 1 : -1) * (penZ + eps);
+            } else {
+              nx += (dx >= 0 ? 1 : -1) * (penX + eps);
+            }
+            nx = clamp(nx, minX, maxX);
+            nz = clamp(nz, minZ, maxZ);
+          }
+        }
       }
     }
 
