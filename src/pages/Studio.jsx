@@ -168,7 +168,7 @@ export default function Studio() {
       ],
       garden: [
         { id: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "Wood", y: 0, rotY: 0 },
-        { id: "garden_block", label: "Steen blok", type: preset.type || "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
+        { id: "garden_block", label: "Steen blok", type: "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
       ],
     }),
     []
@@ -229,7 +229,7 @@ export default function Studio() {
       const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
       const newObj = {
         id,
-        type: preset.type || "Block",
+        type: "Block",
         // we bewaren pos als percentages zodat het responsive blijft
         px: x / rect.width,
         py: y / rect.height,
@@ -515,7 +515,7 @@ function handlePlaceAt(x, z) {
 
       const newObj = {
         id,
-        type: preset.type || "Block",
+        type: "Block",
         x: cx,
         z: cz,
         px,
