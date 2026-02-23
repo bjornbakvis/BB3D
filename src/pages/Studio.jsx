@@ -440,12 +440,11 @@ function handlePlaceAt(x, z) {
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    // IMPORTANT: use the latest objects list (prev) so collision/stacking works
-    // immediately, even when placing multiple blocks quickly.
     const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
 
+    // Gebruik altijd de allernieuwste objectenlijst (prev), zodat stapelen/collision direct klopt
     setObjects((prev) => {
-      // Place inside room + "magnet" to walls/other objects (and stacking)
+      // Place inside room + "magnet" to walls/other objects
       const placed = constrainAndMagnet({
         id: null,
         x,
