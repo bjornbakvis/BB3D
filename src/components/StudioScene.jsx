@@ -318,7 +318,7 @@ export default function StudioScene({
   onObjectClick,
   onMoveStart,
   onMove,
-  snapStep = 0.5,
+  snapStep = 0,
   roomW = 6,
   roomD = 6,
   wallH = 2.4,
