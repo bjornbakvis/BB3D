@@ -28,6 +28,59 @@ function snap(v, step) {
   return Math.round(v / step) * step;
 }
 
+
+function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const step = size / squares;
+
+  for (let y = 0; y < squares; y++) {
+    for (let x = 0; x < squares; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? c1 : c2;
+      ctx.fillRect(x * step, y * step, step, step);
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function getThemeConfig(templateId) {
+  const id = templateId || "bathroom";
+  if (id === "garden") {
+    return {
+      id,
+      floor: { c1: "#3f7a45", c2: "#356a3c", squares: 64, tileSize: 0.25 },
+      wall: { c1: "#d9d9d9", c2: "#cfcfcf", squares: 24, tileSize: 0.6, opacity: 0.25 },
+      grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.35, sectionThickness: 0.75 },
+      light: { ambient: 0.7, sun: 1.05 },
+    };
+  }
+  if (id === "toilet") {
+    return {
+      id,
+      floor: { c1: "#d6d6d6", c2: "#cfcfcf", squares: 48, tileSize: 0.22 },
+      wall: { c1: "#f2f2f2", c2: "#e9e9e9", squares: 28, tileSize: 0.25, opacity: 0.35 },
+      grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.4, sectionThickness: 0.9 },
+      light: { ambient: 0.58, sun: 1.0 },
+    };
+  }
+  // bathroom default
+  return {
+    id: "bathroom",
+    floor: { c1: "#e6e6e6", c2: "#dedede", squares: 40, tileSize: 0.3 },
+    wall: { c1: "#f4f4f4", c2: "#ececec", squares: 24, tileSize: 0.25, opacity: 0.35 },
+    grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.4, sectionThickness: 0.9 },
+    light: { ambient: 0.6, sun: 1.05 },
+  };
+}
+
 function groundPointFromRay(ray) {
   // Intersect the pointer ray with the ground plane at y=0
   const o = ray.origin;
@@ -138,7 +191,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (option 3: auto-hide)
@@ -174,13 +227,15 @@ function Room({ roomW, roomD, wallH, showWalls }) {
 
   const wallMat = (
     <meshStandardMaterial
-      color="#f2f2f2"
-      roughness={0.95}
+      map={wallMap}
+      color="#ffffff"
+      roughness={0.92}
       metalness={0}
       transparent
-      opacity={0.35} // option 2: ghost walls so you can keep seeing inside
+      opacity={wallOpacity}
     />
   );
+
 
   // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
   const noRaycast = () => null;
@@ -323,35 +378,61 @@ export default function StudioScene({
   roomD = 6,
   wallH = 2.4,
   showWalls = true,
+  templateId = "bathroom",
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
+  const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
+
+  const floorTex = useMemo(() => {
+    const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
+    const repsX = Math.max(1, roomW / theme.floor.tileSize);
+    const repsZ = Math.max(1, roomD / theme.floor.tileSize);
+    t.repeat.set(repsX, repsZ);
+    return t;
+  }, [theme, roomW, roomD]);
+
+  const wallTex = useMemo(() => {
+    const t = makeCheckerTexture({ c1: theme.wall.c1, c2: theme.wall.c2, squares: theme.wall.squares });
+    const repsX = Math.max(1, roomW / theme.wall.tileSize);
+    const repsZ = Math.max(1, roomD / theme.wall.tileSize);
+    t.repeat.set(repsX, repsZ);
+    return t;
+  }, [theme, roomW, roomD]);
+
   return (
     <div className="relative h-full w-full">
       <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
-        <ambientLight intensity={0.55} />
+        <ambientLight intensity={theme.light.ambient} />
         <CameraFramer controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
         <directionalLight
           position={[6, 10, 4]}
-          intensity={1}
+          intensity={theme.light.sun}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
+
+
+        {/* Visible floor (theme) */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
+          <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
+          <meshStandardMaterial map={floorTex} color="#ffffff" roughness={0.95} metalness={0} />
+        </mesh>
 
         {/* Grid vloer */}
         <Grid
           position={[0, 0, 0]}
           args={[roomW, roomD]}
           cellSize={1}
-          cellThickness={0.5}
-          cellColor="#000000"
+          cellThickness={theme.grid.cellThickness}
+          cellColor={theme.grid.cell}
           sectionSize={5}
-          sectionThickness={1}
-          sectionColor="#000000"
+          sectionThickness={theme.grid.sectionThickness}
+          sectionColor={theme.grid.section}
           fadeDistance={30}
           fadeStrength={1}
         />
@@ -378,7 +459,7 @@ export default function StudioScene({
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} />
 
 
         {/* Blocks */}
