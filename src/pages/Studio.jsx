@@ -248,7 +248,7 @@ export default function Studio() {
     return { ex, ez };
   }
 
-  function constrainAndMagnet({ id, x, z, w, d, rotY, objectsNow }) {
+  function constrainAndMagnet({ id, x, y, z, w, d, h, rotY, objectsNow }) {
     const { ex, ez } = rotatedExtents(w, d, rotY);
 
     // Keep a tiny gap so objects don't visually clip into walls
@@ -264,6 +264,8 @@ export default function Studio() {
 
     let nx = clamp(x, minX, maxX);
     let nz = clamp(z, minZ, maxZ);
+    let ny = Number(y ?? 0);
+    const nh = Number(h ?? 0);
 
     // "Magnet" distance (how close is considered 'snap')
     const magnet = 0.06;
@@ -276,9 +278,51 @@ export default function Studio() {
 
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
+
+    // --- STAPELEN (stacking) ---
+    // Als het object volledig "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
+    // Dit geeft: kastje + wastafel / kastje + blad, etc.
+    const stackTol = 0.02;
+    let bestY = ny;
     for (const o of others) {
       const ox = Number(o.x ?? 0);
       const oz = Number(o.z ?? 0);
+      const oy = Number(o.y ?? 0);
+      const oh = Number(o.h ?? 0);
+
+      // Alleen botsing voorkomen als we ook écht op dezelfde hoogte zitten.
+      // (Als je stapelt, mogen de X/Z footprints overlappen, want Y is anders.)
+      if (!yOverlaps(oy, oh)) continue;
+      const oy = Number(o.y ?? 0);
+      const oh = Number(o.h ?? 0);
+      const { ex: oex, ez: oez } = rotatedExtents(o.w, o.d, o.rotY);
+
+      // Past onze footprint binnen de footprint van het andere object?
+      if (oex + stackTol >= ex && oez + stackTol >= ez) {
+        const fitX = Math.abs(nx - ox) <= (oex - ex + stackTol);
+        const fitZ = Math.abs(nz - oz) <= (oez - ez + stackTol);
+        if (fitX && fitZ) {
+          const candidateY = oy + oh;
+          if (candidateY > bestY) bestY = candidateY;
+        }
+      }
+    }
+    ny = bestY;
+
+    const yOverlaps = (oy, oh) => {
+      const eps = 1e-4;
+      return !(ny + nh <= oy + eps || ny >= oy + oh - eps);
+    };
+
+    for (const o of others) {
+      const ox = Number(o.x ?? 0);
+      const oz = Number(o.z ?? 0);
+      const oy = Number(o.y ?? 0);
+      const oh = Number(o.h ?? 0);
+
+      // Alleen botsing voorkomen als we ook écht op dezelfde hoogte zitten.
+      // (Als je stapelt, mogen de X/Z footprints overlappen, want Y is anders.)
+      if (!yOverlaps(oy, oh)) continue;
       const ow = Number(o.w || 1);
       const od = Number(o.d || 1);
       const orot = Number(o.rotY || 0);
@@ -382,7 +426,7 @@ export default function Studio() {
       }
     }
 
-    return { x: nx, z: nz };
+    return { x: nx, y: ny, z: nz };
   }
 
 function handlePlaceAt(x, z) {
@@ -395,9 +439,11 @@ function handlePlaceAt(x, z) {
     const placed = constrainAndMagnet({
       id: null,
       x,
+      y: defaultBlock.y,
       z,
       w: defaultBlock.w,
       d: defaultBlock.d,
+      h: defaultBlock.h,
       rotY: defaultBlock.rotY,
       objectsNow: objects,
     });
@@ -418,6 +464,7 @@ function handlePlaceAt(x, z) {
       px,
       py,
       ...defaultBlock,
+      y: placed.y,
     };
     setObjects((prev) => [...prev, newObj]);
     setSelectedId(id);
@@ -440,9 +487,11 @@ function handlePlaceAt(x, z) {
       const moved = constrainAndMagnet({
         id,
         x,
+        y: moving.y ?? 0,
         z,
         w: moving.w,
         d: moving.d,
+        h: moving.h,
         rotY: moving.rotY,
         objectsNow: prev,
       });
@@ -453,7 +502,7 @@ function handlePlaceAt(x, z) {
       const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
       const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
 
-      return prev.map((o) => (o.id === id ? { ...o, x: cx, z: cz, px, py } : o));
+      return prev.map((o) => (o.id === id ? { ...o, x: cx, y: moved.y ?? (o.y ?? 0), z: cz, px, py } : o));
     });
   }
 
