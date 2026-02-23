@@ -153,6 +153,36 @@ export default function Studio() {
     []
   );
 
+
+  // Objectbibliotheek (C1) — structuur die we later kunnen uitbreiden met echte modellen/snap points
+  const catalogByTab = useMemo(
+    () => ({
+      bathroom: [
+        { id: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
+        { id: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
+        { id: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
+      ],
+      toilet: [
+        { id: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "White", y: 0, rotY: 0 },
+        { id: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "Wood", y: 0, rotY: 0 },
+      ],
+      garden: [
+        { id: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "Wood", y: 0, rotY: 0 },
+        { id: "garden_block", label: "Steen blok", type: preset.type || "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
+      ],
+    }),
+    []
+  );
+
+  const [libraryTab, setLibraryTab] = useState("bathroom");
+  const [placeItemId, setPlaceItemId] = useState("bath_cabinet_60");
+
+  const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogByTab]);
+  const placePreset = useMemo(
+    () => flatCatalog.find((i) => i.id === placeItemId) || null,
+    [flatCatalog, placeItemId]
+  );
+
   const selectedObj = useMemo(
     () => objects.find((o) => o.id === selectedId) || null,
     [objects, selectedId]
@@ -199,11 +229,11 @@ export default function Studio() {
       const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
       const newObj = {
         id,
-        type: "Block",
+        type: preset.type || "Block",
         // we bewaren pos als percentages zodat het responsive blijft
         px: x / rect.width,
         py: y / rect.height,
-        ...defaultBlock,
+        ...preset,
       };
       setObjects((prev) => [...prev, newObj]);
       setSelectedId(id);
@@ -459,18 +489,20 @@ function handlePlaceAt(x, z) {
 
     const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
 
+    const preset = placePreset || defaultBlock;
+
     // Gebruik altijd de allernieuwste objectenlijst (prev), zodat stapelen/collision direct klopt
     setObjects((prev) => {
       // Place inside room + "magnet" to walls/other objects
       const placed = constrainAndMagnet({
         id: null,
         x,
-        y: defaultBlock.y,
+        y: preset.y ?? 0,
         z,
-        w: defaultBlock.w,
-        d: defaultBlock.d,
-        h: defaultBlock.h,
-        rotY: defaultBlock.rotY,
+        w: preset.w,
+        d: preset.d,
+        h: preset.h,
+        rotY: preset.rotY ?? 0,
         objectsNow: prev,
       });
 
@@ -483,12 +515,12 @@ function handlePlaceAt(x, z) {
 
       const newObj = {
         id,
-        type: "Block",
+        type: preset.type || "Block",
         x: cx,
         z: cz,
         px,
         py,
-        ...defaultBlock,
+        ...preset,
         y: placed.y,
       };
 
@@ -638,6 +670,45 @@ function handlePlaceAt(x, z) {
               <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
               <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
             </div>
+
+            {tool === "place" && (
+              <div className="mt-4">
+                <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <TabButton label="Badkamer" active={libraryTab === "bathroom"} onClick={() => setLibraryTab("bathroom")} />
+                  <TabButton label="Toilet" active={libraryTab === "toilet"} onClick={() => setLibraryTab("toilet")} />
+                  <TabButton label="Tuin" active={libraryTab === "garden"} onClick={() => setLibraryTab("garden")} />
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  {(catalogByTab[libraryTab] || []).map((it) => (
+                    <button
+                      key={it.id}
+                      type="button"
+                      onClick={() => setPlaceItemId(it.id)}
+                      className={clsx(
+                        "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
+                        placeItemId === it.id ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>{it.label}</div>
+                        <div className={clsx("text-[11px]", placeItemId === it.id ? "text-white/70" : "text-black/45")}>
+                          {Math.round(it.w * 100)}×{Math.round(it.d * 100)}×{Math.round(it.h * 100)} cm
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-black/10 bg-black/[0.03] p-3 text-xs text-black/70">
+                  <div className="font-semibold text-black/70">Tip</div>
+                  <div className="mt-1">Kies een object hierboven en klik in het 3D werkvlak om te plaatsen.</div>
+                </div>
+              </div>
+            )}
+
 
             <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
               <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
@@ -837,6 +908,21 @@ function ToolButton({ label, active, onClick }) {
       className={clsx(
         "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
         active ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TabButton({ label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={clsx(
+        "rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm",
+        active ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/70 hover:bg-black/5"
       )}
     >
       {label}
