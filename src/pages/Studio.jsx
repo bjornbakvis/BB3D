@@ -440,38 +440,45 @@ function handlePlaceAt(x, z) {
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    // Place inside room + "magnet" to walls/other objects
-    const placed = constrainAndMagnet({
-      id: null,
-      x,
-      y: defaultBlock.y,
-      z,
-      w: defaultBlock.w,
-      d: defaultBlock.d,
-      h: defaultBlock.h,
-      rotY: defaultBlock.rotY,
-      objectsNow: objects,
+    // IMPORTANT: use the latest objects list (prev) so collision/stacking works
+    // immediately, even when placing multiple blocks quickly.
+    const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+
+    setObjects((prev) => {
+      // Place inside room + "magnet" to walls/other objects (and stacking)
+      const placed = constrainAndMagnet({
+        id: null,
+        x,
+        y: defaultBlock.y,
+        z,
+        w: defaultBlock.w,
+        d: defaultBlock.d,
+        h: defaultBlock.h,
+        rotY: defaultBlock.rotY,
+        objectsNow: prev,
+      });
+
+      const cx = placed.x;
+      const cz = placed.z;
+
+      // Keep a lightweight 0..1 mapping too (based on current room size)
+      const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
+      const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
+
+      const newObj = {
+        id,
+        type: "Block",
+        x: cx,
+        z: cz,
+        px,
+        py,
+        ...defaultBlock,
+        y: placed.y,
+      };
+
+      return [...prev, newObj];
     });
 
-    const cx = placed.x;
-    const cz = placed.z;
-
-    // Keep a lightweight 0..1 mapping too (based on current room size)
-    const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
-    const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
-
-    const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-    const newObj = {
-      id,
-      type: "Block",
-      x: cx,
-      z: cz,
-      px,
-      py,
-      ...defaultBlock,
-      y: placed.y,
-    };
-    setObjects((prev) => [...prev, newObj]);
     setSelectedId(id);
   }
   function handleMoveStart(id) {
