@@ -304,6 +304,7 @@ export default function Studio() {
         if (Math.abs(nz - touchFront) <= magnet) nz = touchFront;
         if (Math.abs(nz - touchBack) <= magnet) nz = touchBack;
       }
+
       // Hard overlap prevention (push out on the smallest penetration)
       const dx = nx - ox;
       const dz = nz - oz;
@@ -316,35 +317,15 @@ export default function Studio() {
         const penX = minAx - ax;
         const penZ = minAz - az;
 
-        // Try the smallest push first
-        const pushX = (dx >= 0 ? 1 : -1) * (penX + 0.001);
-        const pushZ = (dz >= 0 ? 1 : -1) * (penZ + 0.001);
-
         if (penX < penZ) {
-          nx += pushX;
+          nx += (dx >= 0 ? 1 : -1) * (penX + 0.001);
         } else {
-          nz += pushZ;
+          nz += (dz >= 0 ? 1 : -1) * (penZ + 0.001);
         }
 
         // Re-clamp after push-out
         nx = clamp(nx, minX, maxX);
         nz = clamp(nz, minZ, maxZ);
-
-        // If clamping prevented a full resolve (e.g. near a wall), resolve on the other axis too
-        const dx2 = nx - ox;
-        const dz2 = nz - oz;
-        const ax2 = Math.abs(dx2);
-        const az2 = Math.abs(dz2);
-
-        if (ax2 < minAx && az2 < minAz) {
-          if (penX < penZ) {
-            nz += pushZ;
-          } else {
-            nx += pushX;
-          }
-          nx = clamp(nx, minX, maxX);
-          nz = clamp(nz, minZ, maxZ);
-        }
       }
     }
 
