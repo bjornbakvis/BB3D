@@ -158,17 +158,17 @@ export default function Studio() {
   const catalogByTab = useMemo(
     () => ({
       bathroom: [
-        { id: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
-        { id: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
-        { id: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
+        { presetKey: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
+        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
+        { presetKey: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
       ],
       toilet: [
-        { id: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "White", y: 0, rotY: 0 },
-        { id: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "Wood", y: 0, rotY: 0 },
+        { presetKey: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "White", y: 0, rotY: 0 },
+        { presetKey: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "Wood", y: 0, rotY: 0 },
       ],
       garden: [
-        { id: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "Wood", y: 0, rotY: 0 },
-        { id: "garden_block", label: "Steen blok", type: "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
+        { presetKey: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "Wood", y: 0, rotY: 0 },
+        { presetKey: "garden_block", label: "Steen blok", type: "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
       ],
     }),
     []
@@ -179,7 +179,7 @@ export default function Studio() {
 
   const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogByTab]);
   const placePreset = useMemo(
-    () => flatCatalog.find((i) => i.id === placeItemId) || null,
+    () => flatCatalog.find((i) => i.presetKey === placeItemId) || null,
     [flatCatalog, placeItemId]
   );
 
@@ -234,7 +234,7 @@ export default function Studio() {
         px: x / rect.width,
         py: y / rect.height,
         ...preset,
-        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.id mag niet overschrijven)
+        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.presetKey mag niet overschrijven)
       };
       setObjects((prev) => [...prev, newObj]);
       setSelectedId(id);
@@ -522,7 +522,7 @@ function handlePlaceAt(x, z) {
         px,
         py,
         ...preset,
-        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.id mag niet overschrijven)
+        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.presetKey mag niet overschrijven)
         y: placed.y,
       };
 
@@ -686,17 +686,17 @@ function handlePlaceAt(x, z) {
                 <div className="mt-3 grid gap-2">
                   {(catalogByTab[libraryTab] || []).map((it) => (
                     <button
-                      key={it.id}
+                      key={it.presetKey}
                       type="button"
-                      onClick={() => setPlaceItemId(it.id)}
+                      onClick={() => setPlaceItemId(it.presetKey)}
                       className={clsx(
                         "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
-                        placeItemId === it.id ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
+                        placeItemId === it.presetKey ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
                       )}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>{it.label}</div>
-                        <div className={clsx("text-[11px]", placeItemId === it.id ? "text-white/70" : "text-black/45")}>
+                        <div className={clsx("text-[11px]", placeItemId === it.presetKey ? "text-white/70" : "text-black/45")}>
                           {Math.round(it.w * 100)}×{Math.round(it.d * 100)}×{Math.round(it.h * 100)} cm
                         </div>
                       </div>
