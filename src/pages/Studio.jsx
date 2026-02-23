@@ -266,7 +266,7 @@ export default function Studio() {
     let nz = clamp(z, minZ, maxZ);
 
     // "Magnet" distance (how close is considered 'snap')
-    const magnet = 0.12;
+    const magnet = 0.06;
 
     // Snap to walls (touching)
     if (Math.abs(nx - minX) <= magnet) nx = minX;
