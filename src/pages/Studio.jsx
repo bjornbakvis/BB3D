@@ -283,30 +283,35 @@ export default function Studio() {
     // Als het object volledig "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
     // Dit geeft: kastje + wastafel / kastje + blad, etc.
     const stackTol = 0.02;
-    let bestY = ny;
+    const stackMagnet = 0.18; // hoe "makkelijk" hij op een bovenkant klikt
+    // Default: op de vloer. Als er een geldige bovenkant onder ons zit, klikken we daarop.
+    let bestY = 0;
+
     for (const o of others) {
       const ox = Number(o.x ?? 0);
       const oz = Number(o.z ?? 0);
       const oy = Number(o.y ?? 0);
       const oh = Number(o.h ?? 0);
 
-      // Alleen botsing voorkomen als we ook écht op dezelfde hoogte zitten.
-      // (Als je stapelt, mogen de X/Z footprints overlappen, want Y is anders.)
-      if (!yOverlaps(oy, oh)) continue;
-      const oy = Number(o.y ?? 0);
-      const oh = Number(o.h ?? 0);
       const { ex: oex, ez: oez } = rotatedExtents(o.w, o.d, o.rotY);
 
       // Past onze footprint binnen de footprint van het andere object?
       if (oex + stackTol >= ex && oez + stackTol >= ez) {
         const fitX = Math.abs(nx - ox) <= (oex - ex + stackTol);
         const fitZ = Math.abs(nz - oz) <= (oez - ez + stackTol);
+
         if (fitX && fitZ) {
-          const candidateY = oy + oh;
-          if (candidateY > bestY) bestY = candidateY;
+          const topY = oy + oh;
+
+          // Als we (ongeveer) boven het object zitten, mogen we klikken op de bovenkant.
+          // Dit is bewust ruim: je sleept in X/Z, en het object "klimt" dan naar boven als het past.
+          if (ny <= topY + stackMagnet) {
+            if (topY > bestY) bestY = topY;
+          }
         }
       }
     }
+
     ny = bestY;
 
     const yOverlaps = (oy, oh) => {
