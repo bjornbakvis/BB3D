@@ -234,6 +234,7 @@ export default function Studio() {
         px: x / rect.width,
         py: y / rect.height,
         ...preset,
+        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.id mag niet overschrijven)
       };
       setObjects((prev) => [...prev, newObj]);
       setSelectedId(id);
@@ -521,6 +522,7 @@ function handlePlaceAt(x, z) {
         px,
         py,
         ...preset,
+        id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.id mag niet overschrijven)
         y: placed.y,
       };
 
