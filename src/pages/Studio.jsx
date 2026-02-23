@@ -668,6 +668,7 @@ function handlePlaceAt(x, z) {
 
             <div className="mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10">
               <StudioScene
+  templateId={templateId}
                 objects={objects}
                 selectedId={selectedId}
                 tool={tool}
