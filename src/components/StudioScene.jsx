@@ -154,9 +154,6 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     
 
     const isWhiteMaterial = (userHasOverride && o.color === "White") || (!userHasOverride && (kind === "ceramic"));
-    // Backwards-compatible alias (some parts may still reference whiteBoost)
-    const whiteBoost = isWhiteMaterial;
-
 if (userHasOverride) {
       color = colorToHex(o.color);
     }
@@ -197,7 +194,7 @@ if (userHasOverride) {
               roughness={Math.min(1, roughness + 0.1)}
               metalness={metalness}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-              emissiveIntensity={whiteBoost ? 0.12 : 0}
+              emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
             />
           </mesh>
         </group>
@@ -224,7 +221,7 @@ if (userHasOverride) {
               roughness={0.95}
               metalness={0.02}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-              emissiveIntensity={whiteBoost ? 0.12 : 0}
+              emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
             />
           </mesh>
           {/* tiny handle hint */}
@@ -235,7 +232,7 @@ if (userHasOverride) {
               roughness={0.35}
               metalness={0.6}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-              emissiveIntensity={whiteBoost ? 0.12 : 0}
+              emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
             />
           </mesh>
         </group>
@@ -272,7 +269,7 @@ if (userHasOverride) {
                 roughness={0.2}
                 metalness={0.8}
                 emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-                emissiveIntensity={whiteBoost ? 0.12 : 0}
+                emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
               />
             </mesh>
           </group>
@@ -332,7 +329,7 @@ if (userHasOverride) {
               roughness={0.98}
               metalness={0.02}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-              emissiveIntensity={whiteBoost ? 0.12 : 0}
+              emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
             />
           </mesh>
 
@@ -344,7 +341,7 @@ if (userHasOverride) {
               roughness={0.95}
               metalness={0.0}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
-              emissiveIntensity={whiteBoost ? 0.12 : 0}
+              emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
             />
           </mesh>
         </group>
