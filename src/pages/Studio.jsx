@@ -158,17 +158,17 @@ export default function Studio() {
   const catalogByTab = useMemo(
     () => ({
       bathroom: [
-        { presetKey: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
-        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
-        { presetKey: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
+        { presetKey: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "", y: 0, rotY: 0 },
+        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "", y: 0, rotY: 0 },
+        { presetKey: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "", y: 0, rotY: 0 },
       ],
       toilet: [
-        { presetKey: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "White", y: 0, rotY: 0 },
-        { presetKey: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "Wood", y: 0, rotY: 0 },
+        { presetKey: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "", y: 0, rotY: 0 },
+        { presetKey: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "", y: 0, rotY: 0 },
       ],
       garden: [
-        { presetKey: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "Wood", y: 0, rotY: 0 },
-        { presetKey: "garden_block", label: "Steen blok", type: "Block", w: 0.6, d: 0.6, h: 0.25, color: "Concrete", y: 0, rotY: 0 },
+        { presetKey: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "", y: 0, rotY: 0 },
+        { presetKey: "garden_block", label: "Steen blok", type: "Block", w: 0.6, d: 0.6, h: 0.25, color: "", y: 0, rotY: 0 },
       ],
     }),
     []
