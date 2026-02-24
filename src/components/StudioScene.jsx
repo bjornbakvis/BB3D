@@ -153,7 +153,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     const userHasOverride = typeof o.color === "string" && o.color.length > 0;
     
 
-    const whiteBoost = userHasOverride && o.color === "White";
+    const isWhiteMaterial = (userHasOverride && o.color === "White") || (!userHasOverride && (kind === "ceramic"));
 if (userHasOverride) {
       color = colorToHex(o.color);
     }
@@ -164,10 +164,10 @@ if (userHasOverride) {
     const mainMat = (
       <meshStandardMaterial
         color={color}
-        roughness={whiteBoost ? Math.min(roughness, 0.35) : roughness}
+        roughness={isWhiteMaterial ? Math.min(roughness, 0.35) : roughness}
         metalness={metalness}
-        emissive={whiteBoost ? "#ffffff" : "#000000"}
-        emissiveIntensity={whiteBoost ? 0.45 : 0}
+        emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
+        emissiveIntensity={isWhiteMaterial ? 0.45 : 0}
       />
     );
 
@@ -193,7 +193,7 @@ if (userHasOverride) {
               color={color}
               roughness={Math.min(1, roughness + 0.1)}
               metalness={metalness}
-              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
               emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
@@ -220,7 +220,7 @@ if (userHasOverride) {
               color={userHasOverride ? color : "#8b6a4a"}
               roughness={0.95}
               metalness={0.02}
-              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
               emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
@@ -231,7 +231,7 @@ if (userHasOverride) {
               color={"#3a3a3a"}
               roughness={0.35}
               metalness={0.6}
-              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
               emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
@@ -268,7 +268,7 @@ if (userHasOverride) {
                 color={"#3a3a3a"}
                 roughness={0.2}
                 metalness={0.8}
-                emissive={whiteBoost ? "#ffffff" : "#000000"}
+                emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
                 emissiveIntensity={whiteBoost ? 0.12 : 0}
               />
             </mesh>
@@ -328,7 +328,7 @@ if (userHasOverride) {
               color={"#4a3428"}
               roughness={0.98}
               metalness={0.02}
-              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
               emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
@@ -340,7 +340,7 @@ if (userHasOverride) {
               color={"#2f7d32"}
               roughness={0.95}
               metalness={0.0}
-              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
               emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
