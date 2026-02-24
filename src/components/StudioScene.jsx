@@ -201,8 +201,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
         color={color}
         roughness={roughness}
         metalness={metalness}
-        emissive={isSel ? "#1e90ff" : "#000000"}
-        emissiveIntensity={isSel ? 0.35 : 0}
+        emissive={"#000000"}
+        emissiveIntensity={0}
       />
     );
 
@@ -233,8 +233,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={color}
               roughness={Math.min(1, roughness + 0.1)}
               metalness={metalness}
-              emissive={isSel ? "#1e90ff" : "#000000"}
-              emissiveIntensity={isSel ? 0.15 : 0}
+              emissive={"#000000"}
+              emissiveIntensity={0}
             />
           </mesh>
         </group>
@@ -257,11 +257,11 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
           <mesh castShadow receiveShadow position={[0, yPlinth, 0]}>
             <boxGeometry args={[w * 1.01, plinthH, d * 1.01]} />
             <meshStandardMaterial
-              color={"#8b6a4a"}
+              color={userHasOverride ? color : "#8b6a4a"}
               roughness={0.95}
               metalness={0.02}
-              emissive={isSel ? "#1e90ff" : "#000000"}
-              emissiveIntensity={isSel ? 0.12 : 0}
+              emissive={"#000000"}
+              emissiveIntensity={0}
             />
           </mesh>
           {/* tiny handle hint */}
@@ -271,8 +271,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#3a3a3a"}
               roughness={0.35}
               metalness={0.6}
-              emissive={isSel ? "#1e90ff" : "#000000"}
-              emissiveIntensity={isSel ? 0.08 : 0}
+              emissive={"#000000"}
+              emissiveIntensity={0}
             />
           </mesh>
         </group>
@@ -308,8 +308,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
                 color={"#3a3a3a"}
                 roughness={0.2}
                 metalness={0.8}
-                emissive={isSel ? "#1e90ff" : "#000000"}
-                emissiveIntensity={isSel ? 0.06 : 0}
+                emissive={"#000000"}
+                emissiveIntensity={0}
               />
             </mesh>
           </group>
@@ -368,8 +368,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#4a3428"}
               roughness={0.98}
               metalness={0.02}
-              emissive={isSel ? "#1e90ff" : "#000000"}
-              emissiveIntensity={isSel ? 0.05 : 0}
+              emissive={"#000000"}
+              emissiveIntensity={0}
             />
           </mesh>
 
@@ -380,8 +380,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#2f7d32"}
               roughness={0.95}
               metalness={0.0}
-              emissive={isSel ? "#1e90ff" : "#000000"}
-              emissiveIntensity={isSel ? 0.04 : 0}
+              emissive={"#000000"}
+              emissiveIntensity={0}
             />
           </mesh>
         </group>
