@@ -117,6 +117,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let roughness = 0.9;
     let metalness = 0.05;
 
+
     // We'll also use a simple "kind" to decide shapes
     let kind = "default";
  // wood | counter | ceramic | planter | stone | default
