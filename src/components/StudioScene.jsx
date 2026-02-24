@@ -127,7 +127,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
       color = "#c49a6c";
       roughness = 0.78;
       metalness = 0.06;
-      kind = "cabinet";
+      kind = "wood";
     } else if (key.includes("counter")) {
       color = "#e5e5e5";
       roughness = 0.6;
@@ -503,13 +503,13 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
       color="#ffffff"
       roughness={0.92}
       metalness={0}
-      transparent
+      transparent={wallOpacity < 1}
       opacity={wallOpacity}
+      depthWrite={wallOpacity >= 1}
     />
   );
 
-
-  // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
+// Important: walls should NOT capture pointer events (fixes "can't move inside walls")
   const noRaycast = () => null;
 
   const renderWall = (key, props, geomArgs) => {
