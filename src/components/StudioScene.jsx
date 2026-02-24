@@ -105,17 +105,64 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 
   // PATCH B (prep for C2): Central place to map visuals per presetKey.
   // IMPORTANT: For now, we keep visuals exactly the same as before (box + same material).
+  
   function renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover }) {
-    // Later (C2) we will switch on o.presetKey for materials/geometries.
-    switch (o?.presetKey) {
+    // Material overrides per presetKey (C2 - materials only)
+    let color = baseColor;
+    let roughness = 0.9;
+    let metalness = 0.05;
+
+    switch (o.presetKey) {
+      case "kastje":
+        color = "#c49a6c"; // warm wood tone
+        roughness = 0.85;
+        metalness = 0.05;
+        break;
+
+      case "blad":
+        color = "#e5e5e5"; // light stone/laminate
+        roughness = 0.6;
+        metalness = 0.1;
+        break;
+
+      case "wastafel":
+      case "toilet":
+        color = "#f8f8f8"; // ceramic white
+        roughness = 0.35;
+        metalness = 0.05;
+        break;
+
+      case "plantenbak":
+        color = "#bdbdbd"; // stone planter
+        roughness = 0.8;
+        metalness = 0.05;
+        break;
+
+      case "steen":
+        color = "#9e9e9e"; // outdoor stone
+        roughness = 0.95;
+        metalness = 0.02;
+        break;
+
       default:
-        return (
-          <>
-            {renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover })}
-          </>
-        );
+        break;
     }
+
+    return (
+      <>
+        <boxGeometry args={[w, h, d]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={roughness}
+          metalness={metalness}
+          emissive={isSel ? "#1e90ff" : "#000000"}
+          emissiveIntensity={isSel ? 0.35 : 0}
+        />
+        {(isHover || isSel) && <Edges scale={1.01} color="#2563eb" />}
+      </>
+    );
   }
+
 
   return (
     <>
