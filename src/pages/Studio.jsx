@@ -159,7 +159,7 @@ export default function Studio() {
     () => ({
       bathroom: [
         { presetKey: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
-        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "", y: 0, rotY: 0 },
+        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
         { presetKey: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
       ],
       toilet: [
