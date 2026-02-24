@@ -18,6 +18,27 @@ function colorToHex(name) {
   }
 }
 
+function adjustHex(hex, amount) {
+  // amount: -0.2..0.2 (negative = darker, positive = lighter)
+  if (typeof hex !== "string") return hex;
+  const h = hex.startsWith("#") ? hex.slice(1) : hex;
+  if (h.length !== 6) return hex;
+  const num = parseInt(h, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  const f = Math.max(-0.9, Math.min(0.9, amount));
+  const adj = (c) => {
+    const v = f >= 0 ? c + (255 - c) * f : c * (1 + f);
+    return Math.max(0, Math.min(255, Math.round(v)));
+  };
+  const rr = adj(r).toString(16).padStart(2, "0");
+  const gg = adj(g).toString(16).padStart(2, "0");
+  const bb = adj(b).toString(16).padStart(2, "0");
+  return `#${rr}${gg}${bb}`;
+}
+
+
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
@@ -217,7 +238,7 @@ if (userHasOverride) {
           <mesh castShadow receiveShadow position={[0, yPlinth, 0]}>
             <boxGeometry args={[w * 1.01, plinthH, d * 1.01]} />
             <meshStandardMaterial
-              color={userHasOverride ? color : "#8b6a4a"}
+              color={userHasOverride ? adjustHex(color, isWhiteMaterial ? -0.10 : -0.12) : "#8b6a4a"}
               roughness={0.95}
               metalness={0.02}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
