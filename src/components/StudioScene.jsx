@@ -118,7 +118,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let metalness = 0.05;
 
     // We'll also use a simple "kind" to decide shapes
-    let kind = "default"; // wood | counter | ceramic | planter | stone | default
+    let kind = "default";
+ // wood | counter | ceramic | planter | stone | default
 
     switch (o.presetKey) {
       // Bathrooms
