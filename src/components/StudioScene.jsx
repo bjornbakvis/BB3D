@@ -446,7 +446,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             receiveShadow
           >
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial transparent opacity={0} />
+            <meshStandardMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
             {renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover })}
             {(isSel || isHover) && (
               <Edges
@@ -724,10 +724,9 @@ export default function StudioScene({
             const z0 = snap(p.z, snapStep);
             onPlaceAt?.(x0, z0);
           }}
-          receiveShadow
-        >
+          >
           <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
-          <meshStandardMaterial color="#ffffff" transparent opacity={0} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
 
         {/* Room walls */}
