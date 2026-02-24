@@ -102,6 +102,21 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     });
   }, [objects]);
 
+
+  // PATCH B (prep for C2): Central place to map visuals per presetKey.
+  // IMPORTANT: For now, we keep visuals exactly the same as before (box + same material).
+  function renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover }) {
+    // Later (C2) we will switch on o.presetKey for materials/geometries.
+    switch (o?.presetKey) {
+      default:
+        return (
+          <>
+            {renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover })}
+          </>
+        );
+    }
+  }
+
   return (
     <>
       {mapped.map((o) => {
