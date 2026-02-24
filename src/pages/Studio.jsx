@@ -310,6 +310,8 @@ export default function Studio() {
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
 
+    let forcedStack = null;
+
 
     // --- PRO SNAPPOINTS (C3) ---
     // Stability-first: only add narrow, type-specific snaps without changing existing magnet/collision.
@@ -378,10 +380,9 @@ export default function Studio() {
           }
 
           if (bestPair) {
-            // Snap X/Z to the pair center, and set Y to the cabinet top (counter sits on cabinets).
-            nx = clamp(bestPair.x, minX, maxX);
-            nz = clamp(bestPair.z, minZ, maxZ);
-            ny = bestPair.y;
+            // De uiteindelijke "stack" beslissing gebeurt lager in de stacking-sectie.
+            // We geven hier alleen een voorstel door.
+            forcedStack = { x: bestPair.x, z: bestPair.z, y: bestPair.y };
           }
         }
       }
@@ -397,7 +398,14 @@ export default function Studio() {
     let bestY = 0;
     let bestCenter = null;
 
-    for (const o of others) {
+
+    if (forcedStack) {
+      bestY = forcedStack.y;
+      bestCenter = { x: forcedStack.x, z: forcedStack.z };
+    }
+
+    if (!forcedStack) {
+      for (const o of others) {
       const ox = Number(o.x ?? 0);
       const oz = Number(o.z ?? 0);
       const oy = Number(o.y ?? 0);
@@ -428,6 +436,7 @@ export default function Studio() {
           }
         }
       }
+    }
     }
 
     if (bestY > 0) {
