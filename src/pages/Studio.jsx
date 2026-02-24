@@ -879,11 +879,11 @@ function handlePlaceAt(x, z) {
                     className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
                   >
                     <option value="">Auto (type)</option>
-                    <option>Stone</option>
-                    <option>Wood</option>
-                    <option>Concrete</option>
-                    <option>White</option>
-                    <option>Black</option>
+                    <option value="Stone">Stone</option>
+                    <option value="Wood">Wood</option>
+                    <option value="Concrete">Concrete</option>
+                    <option value="White">White</option>
+                    <option value="Black">Black</option>
                   </select>
                 </div>
 
