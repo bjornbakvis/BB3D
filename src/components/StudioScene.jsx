@@ -213,6 +213,13 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     if (kind === "counter") {
       const t = Math.max(0.05, h * 0.22); // thickness
       const yTop = halfH - t / 2;
+      // User override: keep pro type look by default, but let UI-selected color win.
+      // Default (no override) = empty string / undefined.
+      const userHasOverride = typeof o.color === "string" && o.color.length > 0;
+      if (userHasOverride) {
+        color = colorToHex(o.color);
+      }
+
       return (
         <group>
           <mesh castShadow receiveShadow position={[0, yTop, 0]}>
