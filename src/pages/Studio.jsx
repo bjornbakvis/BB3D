@@ -307,6 +307,74 @@ export default function Studio() {
     if (Math.abs(nz - minZ) <= magnet) nz = minZ;
     if (Math.abs(nz - maxZ) <= magnet) nz = maxZ;
 
+
+    // --- C3: Pro snappoints (laag risico) ---
+    // We lezen type/presetKey van het object dat je verplaatst, zonder call-sites te wijzigen.
+    const movingObj = (objectsNow || []).find((o) => o && o.id === id) || null;
+    const movingType = movingObj?.type || "Block";
+
+    // Countertop: als hij boven 2 kastjes past, snap naar het midden tussen die 2 kastjes.
+    // Hiermee kun je een blad professioneel "op 2 kastjes" plaatsen.
+    if (movingType === "Countertop") {
+      const cabinets = (objectsNow || []).filter((o) => o && o.id !== id && o.type === "Cabinet");
+      const snapLaneZ = 0.18; // hoe strak ze op dezelfde diepte moeten liggen
+      const snapNear = 0.30; // hoe dichtbij je moet zitten om te snappen
+      const best = { score: Infinity, x: nx, z: nz, y: ny };
+
+      for (let i = 0; i < cabinets.length; i++) {
+        for (let j = i + 1; j < cabinets.length; j++) {
+          const a = cabinets[i];
+          const b = cabinets[j];
+
+          const az = Number(a.z ?? 0);
+          const bz = Number(b.z ?? 0);
+          if (Math.abs(az - bz) > snapLaneZ) continue; // niet in dezelfde "rij"
+
+          const ax = Number(a.x ?? 0);
+          const bx = Number(b.x ?? 0);
+          const midX = (ax + bx) / 2;
+          const midZ = (az + bz) / 2;
+
+          // Pro check: het blad moet passen op de breedte van deze 2 kastjes (bv 120 op 2×60).
+          const aw = Number(a.w ?? 0);
+          const bw = Number(b.w ?? 0);
+          const targetW = Number(w ?? 0);
+          const wTol = 0.06; // 6cm tolerantie
+          if (targetW > 0 && Math.abs((aw + bw) - targetW) > wTol) continue;
+
+          // Pro check: kastjes moeten echt "naast elkaar" staan (niet te ver uit elkaar).
+          const centerDist = Math.abs(ax - bx);
+          const expectedDist = (aw + bw) / 2;
+          const gapTol = 0.08; // 8cm tolerantie op "gap/overlap"
+          if (expectedDist > 0 && Math.abs(centerDist - expectedDist) > gapTol) continue;
+
+          // Is het blad ongeveer boven/naast deze combinatie?
+          const nearMid = Math.abs(nx - midX) <= Math.max(snapNear, (Number(w) || 0) * 0.35) && Math.abs(nz - midZ) <= snapNear;
+          if (!nearMid) continue;
+
+          // Hoogte: top van het hoogste kastje
+          const topA = Number(a.y ?? 0) + Number(a.h ?? 0);
+          const topB = Number(b.y ?? 0) + Number(b.h ?? 0);
+          const targetY = Math.max(topA, topB);
+
+          // Score: hoe dicht zitten we bij het midden
+          const score = Math.hypot(nx - midX, nz - midZ);
+          if (score < best.score) {
+            best.score = score;
+            best.x = clamp(midX, minX, maxX);
+            best.z = clamp(midZ, minZ, maxZ);
+            best.y = targetY;
+          }
+        }
+      }
+
+      if (best.score < Infinity) {
+        nx = best.x;
+        nz = best.z;
+        ny = best.y;
+      }
+    }
+
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
 
