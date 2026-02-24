@@ -145,7 +145,7 @@ export default function Studio() {
       w: 1.2,
       h: 0.9,
       d: 0.6,
-      color: "Stone",
+      color: "",
       y: 0,
       rotY: 0, // degrees
 
@@ -159,7 +159,7 @@ export default function Studio() {
     () => ({
       bathroom: [
         { presetKey: "bath_cabinet_60", label: "Kastje 60cm", type: "Cabinet", w: 0.6, d: 0.5, h: 0.8, color: "Wood", y: 0, rotY: 0 },
-        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "Stone", y: 0, rotY: 0 },
+        { presetKey: "bath_counter_120", label: "Blad 120cm", type: "Countertop", w: 1.2, d: 0.6, h: 0.06, color: "", y: 0, rotY: 0 },
         { presetKey: "bath_sink", label: "Wastafel", type: "Sink", w: 0.5, d: 0.4, h: 0.18, color: "White", y: 0, rotY: 0 },
       ],
       toilet: [
@@ -874,10 +874,11 @@ function handlePlaceAt(x, z) {
                 <div className="rounded-2xl border border-black/10 bg-white p-4">
                   <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
                   <select
-                    value={selectedObj.color}
+                    value={selectedObj.color ?? ""}
                     onChange={(e) => updateSelected({ color: e.target.value })}
                     className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
                   >
+                    <option value="">Auto (type)</option>
                     <option>Stone</option>
                     <option>Wood</option>
                     <option>Concrete</option>
@@ -932,17 +933,55 @@ function TabButton({ label, active, onClick }) {
   );
 }
 
-function LabeledNumber({ label, value, onChange, step = 0.1 }) {
+function LabeledNumber({ label, value, onChange, step = 0.1, min = 0 }) {
+  // We keep a local string so typing '.' or ',' on mobile works smoothly.
+  const [raw, setRaw] = useState(String(value ?? ""));
+
+  useEffect(() => {
+    // Sync when external value changes (undo/redo/template switch)
+    setRaw(String(value ?? ""));
+  }, [value]);
+
+  function normalizeDecimalString(s) {
+    let t = String(s ?? "").replace(/,/g, ".");
+    t = t.replace(/[^0-9.\-]/g, "");
+    if (t.includes("-")) {
+      t = (t.startsWith("-") ? "-" : "") + t.replace(/-/g, "");
+    }
+    const firstDot = t.indexOf(".");
+    if (firstDot !== -1) {
+      t = t.slice(0, firstDot + 1) + t.slice(firstDot + 1).replace(/\./g, "");
+    }
+    return t;
+  }
+
+  function commit() {
+    const t = normalizeDecimalString(raw);
+    if (t === "" || t === "-" || t === ".") {
+      setRaw(String(value ?? ""));
+      return;
+    }
+    const num = Number(t);
+    if (Number.isNaN(num)) {
+      setRaw(String(value ?? ""));
+      return;
+    }
+    onChange(Math.max(min, num));
+  }
+
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-4">
       <div className="text-xs font-semibold text-black/70">{label}</div>
       <input
-        type="number"
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        value={raw}
+        onChange={(e) => setRaw(e.target.value)}
+        onBlur={commit}
         className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
       />
+      <div className="mt-1 text-[11px] text-black/35">Tip: je mag . of , gebruiken</div>
     </div>
   );
 }
