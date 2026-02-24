@@ -9,8 +9,7 @@ function colorToHex(name) {
       return "#a67c52";
     case "Concrete":
       return "#a0a0a0";
-    case "White":
-      return "#f1f1f1";
+    case "White": return "#ffffff";
     case "Black":
       return "#222222";
     case "Stone":
