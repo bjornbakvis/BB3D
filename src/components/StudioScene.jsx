@@ -117,10 +117,9 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let roughness = 0.9;
     let metalness = 0.05;
 
-    // User-selected color override ("" = Auto/type default)
-    const userHasOverride = typeof o.color === "string" && o.color.length > 0;
-
- else if (k.includes("counter")) {
+    
+       const userHasOverride = typeof o.color === "string" && o.color.length > 0;
+if (k.includes("counter")) {
             color = "#e5e5e5";
             roughness = 0.6;
             metalness = 0.1;
