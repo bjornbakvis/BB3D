@@ -238,7 +238,18 @@ if (userHasOverride) {
           <mesh castShadow receiveShadow position={[0, yPlinth, 0]}>
             <boxGeometry args={[w * 1.01, plinthH, d * 1.01]} />
             <meshStandardMaterial
-              color={userHasOverride ? adjustHex(color, isWhiteMaterial ? -0.10 : -0.12) : "#8b6a4a"}
+              color={
+              userHasOverride
+                ? adjustHex(
+                    color,
+                    isWhiteMaterial
+                      ? -0.10
+                      : color === "#000000"
+                        ? 0.15
+                        : -0.12
+                  )
+                : "#8b6a4a"
+            }
               roughness={0.95}
               metalness={0.02}
               emissive={isWhiteMaterial ? "#ffffff" : "#000000"}
