@@ -105,17 +105,93 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 
   // PATCH B (prep for C2): Central place to map visuals per presetKey.
   // IMPORTANT: For now, we keep visuals exactly the same as before (box + same material).
+  
   function renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover }) {
-    // Later (C2) we will switch on o.presetKey for materials/geometries.
-    switch (o?.presetKey) {
+    // Material overrides per presetKey (C2 - materials only)
+    let color = baseColor;
+    let roughness = 0.9;
+    let metalness = 0.05;
+
+    switch (o.presetKey) {
+      // Bathrooms
+      case "bath_cabinet_60":
+      // Toilets
+      case "toilet_cabinet_40":
+        color = "#c49a6c"; // warm wood tone
+        roughness = 0.85;
+        metalness = 0.05;
+        break;
+
+      case "bath_counter_120":
+        color = "#e5e5e5"; // light stone/laminate
+        roughness = 0.6;
+        metalness = 0.1;
+        break;
+
+      case "bath_sink":
+      case "toilet_toilet":
+        color = "#f8f8f8"; // ceramic white
+        roughness = 0.35;
+        metalness = 0.05;
+        break;
+
+      // Garden
+      case "garden_planter":
+        color = "#bdbdbd"; // stone planter
+        roughness = 0.8;
+        metalness = 0.05;
+        break;
+
+      case "garden_block":
+        color = "#9e9e9e"; // outdoor stone
+        roughness = 0.95;
+        metalness = 0.02;
+        break;
+
       default:
-        return (
-          <>
-            {renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover })}
-          </>
-        );
+        // Fallbacks (helps if new keys are added later)
+        if (typeof o.presetKey === "string") {
+          const k = o.presetKey;
+          if (k.includes("cabinet")) {
+            color = "#c49a6c";
+            roughness = 0.85;
+            metalness = 0.05;
+          } else if (k.includes("counter")) {
+            color = "#e5e5e5";
+            roughness = 0.6;
+            metalness = 0.1;
+          } else if (k.includes("sink") || k.includes("toilet")) {
+            color = "#f8f8f8";
+            roughness = 0.35;
+            metalness = 0.05;
+          } else if (k.includes("planter")) {
+            color = "#bdbdbd";
+            roughness = 0.8;
+            metalness = 0.05;
+          } else if (k.includes("block") || k.includes("stone")) {
+            color = "#9e9e9e";
+            roughness = 0.95;
+            metalness = 0.02;
+          }
+        }
+        break;
     }
+
+    return (
+      <>
+        <boxGeometry args={[w, h, d]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={roughness}
+          metalness={metalness}
+          emissive={isSel ? "#1e90ff" : "#000000"}
+          emissiveIntensity={isSel ? 0.35 : 0}
+        />
+        {(isHover || isSel) && <Edges scale={1.01} color="#2563eb" />}
+      </>
+    );
   }
+
 
   return (
     <>
