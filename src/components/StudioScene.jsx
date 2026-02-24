@@ -106,11 +106,19 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
   // PATCH B (prep for C2): Central place to map visuals per presetKey.
   // IMPORTANT: For now, we keep visuals exactly the same as before (box + same material).
   
+  
   function renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover }) {
-    // Material overrides per presetKey (C2 - materials only)
+    // C2 + Patch D (geometry): materials + simple shapes per presetKey.
+    // IMPORTANT: Interaction footprint is kept via a separate invisible hitbox mesh (see mapped render below).
+    // This function only returns VISUAL meshes (no hitbox, no pointer handlers).
+
+    // --- base material defaults
     let color = baseColor;
     let roughness = 0.9;
     let metalness = 0.05;
+
+    // We'll also use a simple "kind" to decide shapes
+    let kind = "default"; // wood | counter | ceramic | planter | stone | default
 
     switch (o.presetKey) {
       // Bathrooms
@@ -120,12 +128,14 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
         color = "#c49a6c"; // warm wood tone
         roughness = 0.85;
         metalness = 0.05;
+        kind = "wood";
         break;
 
       case "bath_counter_120":
         color = "#e5e5e5"; // light stone/laminate
         roughness = 0.6;
         metalness = 0.1;
+        kind = "counter";
         break;
 
       case "bath_sink":
@@ -133,6 +143,7 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
         color = "#f8f8f8"; // ceramic white
         roughness = 0.35;
         metalness = 0.05;
+        kind = "ceramic";
         break;
 
       // Garden
@@ -140,12 +151,14 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
         color = "#bdbdbd"; // stone planter
         roughness = 0.8;
         metalness = 0.05;
+        kind = "planter";
         break;
 
       case "garden_block":
         color = "#9e9e9e"; // outdoor stone
         roughness = 0.95;
         metalness = 0.02;
+        kind = "stone";
         break;
 
       default:
@@ -156,39 +169,247 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             color = "#c49a6c";
             roughness = 0.85;
             metalness = 0.05;
+            kind = "wood";
           } else if (k.includes("counter")) {
             color = "#e5e5e5";
             roughness = 0.6;
             metalness = 0.1;
+            kind = "counter";
           } else if (k.includes("sink") || k.includes("toilet")) {
             color = "#f8f8f8";
             roughness = 0.35;
             metalness = 0.05;
+            kind = "ceramic";
           } else if (k.includes("planter")) {
             color = "#bdbdbd";
             roughness = 0.8;
             metalness = 0.05;
+            kind = "planter";
           } else if (k.includes("block") || k.includes("stone")) {
             color = "#9e9e9e";
             roughness = 0.95;
             metalness = 0.02;
+            kind = "stone";
           }
         }
         break;
     }
 
+    // Shared material for main parts
+    const mainMat = (
+      <meshStandardMaterial
+        color={color}
+        roughness={roughness}
+        metalness={metalness}
+        emissive={isSel ? "#1e90ff" : "#000000"}
+        emissiveIntensity={isSel ? 0.35 : 0}
+      />
+    );
+
+    // Convenience
+    const halfH = h / 2;
+
+    // PATCH D1: counter becomes a thin top slab (visual only)
+    if (kind === "counter") {
+      const t = Math.max(0.05, h * 0.22); // thickness
+      const yTop = halfH - t / 2;
+      return (
+        <group>
+          <mesh castShadow receiveShadow position={[0, yTop, 0]}>
+            <boxGeometry args={[w * 1.02, t, d * 1.02]} />
+            {mainMat}
+          </mesh>
+          {/* subtle underside shadow lip */}
+          <mesh castShadow receiveShadow position={[0, yTop - t * 0.35, 0]}>
+            <boxGeometry args={[w * 0.98, t * 0.18, d * 0.98]} />
+            <meshStandardMaterial
+              color={color}
+              roughness={Math.min(1, roughness + 0.1)}
+              metalness={metalness}
+              emissive={isSel ? "#1e90ff" : "#000000"}
+              emissiveIntensity={isSel ? 0.15 : 0}
+            />
+          </mesh>
+        </group>
+      );
+    }
+
+    // PATCH D4: cabinets get a plinth + body (still simple boxes)
+    if (kind === "wood") {
+      const plinthH = Math.max(0.04, h * 0.10);
+      const bodyH = Math.max(0.05, h - plinthH);
+      const yPlinth = -halfH + plinthH / 2;
+      const yBody = yPlinth + plinthH / 2 + bodyH / 2;
+
+      return (
+        <group>
+          <mesh castShadow receiveShadow position={[0, yBody, 0]}>
+            <boxGeometry args={[w, bodyH, d]} />
+            {mainMat}
+          </mesh>
+          <mesh castShadow receiveShadow position={[0, yPlinth, 0]}>
+            <boxGeometry args={[w * 1.01, plinthH, d * 1.01]} />
+            <meshStandardMaterial
+              color={"#8b6a4a"}
+              roughness={0.95}
+              metalness={0.02}
+              emissive={isSel ? "#1e90ff" : "#000000"}
+              emissiveIntensity={isSel ? 0.12 : 0}
+            />
+          </mesh>
+          {/* tiny handle hint */}
+          <mesh castShadow receiveShadow position={[w * 0.25, yBody, d * 0.51]}>
+            <boxGeometry args={[w * 0.18, bodyH * 0.06, 0.02]} />
+            <meshStandardMaterial
+              color={"#3a3a3a"}
+              roughness={0.35}
+              metalness={0.6}
+              emissive={isSel ? "#1e90ff" : "#000000"}
+              emissiveIntensity={isSel ? 0.08 : 0}
+            />
+          </mesh>
+        </group>
+      );
+    }
+
+    // PATCH D3: ceramic items get simple multi-part forms
+    if (kind === "ceramic") {
+      // sink vs toilet distinction via presetKey
+      const k = String(o.presetKey || "");
+
+      if (k.includes("sink")) {
+        // Sink: base + bowl
+        const baseH = Math.max(0.05, h * 0.45);
+        const bowlH = Math.max(0.05, h * 0.30);
+        const yBase = -halfH + baseH / 2;
+        const yBowl = yBase + baseH / 2 + bowlH / 2;
+
+        return (
+          <group>
+            <mesh castShadow receiveShadow position={[0, yBase, 0]}>
+              <boxGeometry args={[w * 0.75, baseH, d * 0.60]} />
+              {mainMat}
+            </mesh>
+            <mesh castShadow receiveShadow position={[0, yBowl, 0]}>
+              <cylinderGeometry args={[Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, bowlH, 24]} />
+              {mainMat}
+            </mesh>
+            {/* faucet hint */}
+            <mesh castShadow receiveShadow position={[0, yBowl + bowlH * 0.15, d * 0.22]}>
+              <cylinderGeometry args={[0.02, 0.02, h * 0.22, 12]} />
+              <meshStandardMaterial
+                color={"#3a3a3a"}
+                roughness={0.2}
+                metalness={0.8}
+                emissive={isSel ? "#1e90ff" : "#000000"}
+                emissiveIntensity={isSel ? 0.06 : 0}
+              />
+            </mesh>
+          </group>
+        );
+      }
+
+      // Toilet: base + bowl + tank
+      const baseH = Math.max(0.05, h * 0.35);
+      const bowlH = Math.max(0.05, h * 0.30);
+      const tankH = Math.max(0.05, h * 0.25);
+
+      const yBase = -halfH + baseH / 2;
+      const yBowl = yBase + baseH / 2 + bowlH / 2;
+      const yTank = halfH - tankH / 2;
+
+      return (
+        <group>
+          <mesh castShadow receiveShadow position={[0, yBase, 0]}>
+            <boxGeometry args={[w * 0.75, baseH, d * 0.80]} />
+            {mainMat}
+          </mesh>
+          <mesh castShadow receiveShadow position={[0, yBowl, -d * 0.10]}>
+            <cylinderGeometry args={[Math.min(w, d) * 0.22, Math.min(w, d) * 0.28, bowlH, 24]} />
+            {mainMat}
+          </mesh>
+          <mesh castShadow receiveShadow position={[0, yTank, d * 0.18]}>
+            <boxGeometry args={[w * 0.55, tankH, d * 0.30]} />
+            {mainMat}
+          </mesh>
+        </group>
+      );
+    }
+
+    // PATCH D2: planter becomes planter + soil + plant
+    if (kind === "planter") {
+      const wall = Math.max(0.03, Math.min(w, d) * 0.08);
+      const soilH = Math.max(0.04, h * 0.18);
+      const plantH = Math.max(0.08, h * 0.45);
+
+      const yOuter = -halfH + h / 2; // center (0), but keep explicit
+      const ySoil = halfH - soilH / 2 - wall * 0.25;
+      const yPlant = ySoil + soilH / 2 + plantH / 2;
+
+      return (
+        <group>
+          {/* Outer box */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[w, h, d]} />
+            {mainMat}
+          </mesh>
+
+          {/* Soil */}
+          <mesh castShadow receiveShadow position={[0, ySoil, 0]}>
+            <boxGeometry args={[Math.max(0.05, w - wall * 2), soilH, Math.max(0.05, d - wall * 2)]} />
+            <meshStandardMaterial
+              color={"#4a3428"}
+              roughness={0.98}
+              metalness={0.02}
+              emissive={isSel ? "#1e90ff" : "#000000"}
+              emissiveIntensity={isSel ? 0.05 : 0}
+            />
+          </mesh>
+
+          {/* Plant */}
+          <mesh castShadow receiveShadow position={[0, yPlant, 0]}>
+            <cylinderGeometry args={[Math.min(w, d) * 0.12, Math.min(w, d) * 0.16, plantH, 16]} />
+            <meshStandardMaterial
+              color={"#2f7d32"}
+              roughness={0.95}
+              metalness={0.0}
+              emissive={isSel ? "#1e90ff" : "#000000"}
+              emissiveIntensity={isSel ? 0.04 : 0}
+            />
+          </mesh>
+        </group>
+      );
+    }
+
+    // Stone blocks: simple bevel feel via two stacked boxes
+    if (kind === "stone") {
+      const topH = Math.max(0.03, h * 0.35);
+      const bottomH = Math.max(0.03, h - topH);
+      const yBottom = -halfH + bottomH / 2;
+      const yTop = yBottom + bottomH / 2 + topH / 2;
+
+      return (
+        <group>
+          <mesh castShadow receiveShadow position={[0, yBottom, 0]}>
+            <boxGeometry args={[w, bottomH, d]} />
+            {mainMat}
+          </mesh>
+          <mesh castShadow receiveShadow position={[0, yTop, 0]}>
+            <boxGeometry args={[w * 0.92, topH, d * 0.92]} />
+            {mainMat}
+          </mesh>
+        </group>
+      );
+    }
+
+    // Default: fallback to a simple box (visual)
     return (
-      <>
-        <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={roughness}
-          metalness={metalness}
-          emissive={isSel ? "#1e90ff" : "#000000"}
-          emissiveIntensity={isSel ? 0.35 : 0}
-        />
-        {(isHover || isSel) && <Edges scale={1.01} color="#2563eb" />}
-      </>
+      <group>
+        <mesh castShadow receiveShadow position={[0, 0, 0]}>
+          <boxGeometry args={[w, h, d]} />
+          {mainMat}
+        </mesh>
+      </group>
     );
   }
 
@@ -260,13 +481,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             receiveShadow
           >
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial
-              color={baseColor}
-              emissive={isSel ? "#222222" : isHover ? "#222222" : "#000000"}
-              emissiveIntensity={isSel ? 1.25 : isHover ? 0.45 : 0}
-              roughness={0.8}
-              metalness={0.05}
-            />
+            <meshStandardMaterial transparent opacity={0} />
+            {renderBlockVisual(o, { w, h, d, baseColor, isSel, isHover })}
             {(isSel || isHover) && (
               <Edges
                 scale={1.01}
@@ -335,7 +551,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
     // option 1 + option 3: always keep the camera-facing wall open (hidden)
     if (hiddenWall === key) return null;
     return (
-      <mesh {...props} raycast={noRaycast} castShadow receiveShadow>
+      <mesh castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
         <boxGeometry args={geomArgs} />
         {wallMat}
       </mesh>
@@ -509,7 +725,7 @@ export default function StudioScene({
 
 
         {/* Visible floor (theme) */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
+        <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
           <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
           <meshStandardMaterial map={floorTex} color="#ffffff" roughness={0.95} metalness={0} />
         </mesh>
