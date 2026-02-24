@@ -981,7 +981,6 @@ function LabeledNumber({ label, value, onChange, step = 0.1, min = 0 }) {
         onBlur={commit}
         className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
       />
-      <div className="mt-1 text-[11px] text-black/35">Tip: je mag . of , gebruiken</div>
-    </div>
+</div>
   );
 }
