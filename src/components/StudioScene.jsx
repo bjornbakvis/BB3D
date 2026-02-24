@@ -118,38 +118,46 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let metalness = 0.05;
 
     
-       const userHasOverride = typeof o.color === "string" && o.color.length > 0;
-if (k.includes("counter")) {
-            color = "#e5e5e5";
-            roughness = 0.6;
-            metalness = 0.1;
-            kind = "counter";
-          } else if (k.includes("sink") || k.includes("toilet")) {
-            color = "#f8f8f8";
-            roughness = 0.35;
-            metalness = 0.05;
-            kind = "ceramic";
-          } else if (k.includes("planter")) {
-            color = "#bdbdbd";
-            roughness = 0.8;
-            metalness = 0.05;
-            kind = "planter";
-          } else if (k.includes("block") || k.includes("stone")) {
-            color = "#9e9e9e";
-            roughness = 0.95;
-            metalness = 0.02;
-            kind = "stone";
-          }
-        }
-        break;
+
+    let kind = "default";
+    const key = String(o.presetKey || "");
+
+    // Type defaults (professional look)
+    if (key.includes("cabinet")) {
+      color = "#c49a6c";
+      roughness = 0.78;
+      metalness = 0.06;
+      kind = "cabinet";
+    } else if (key.includes("counter")) {
+      color = "#e5e5e5";
+      roughness = 0.6;
+      metalness = 0.1;
+      kind = "counter";
+    } else if (key.includes("sink") || key.includes("toilet")) {
+      color = "#f8f8f8";
+      roughness = 0.35;
+      metalness = 0.05;
+      kind = "ceramic";
+    } else if (key.includes("planter")) {
+      color = "#bdbdbd";
+      roughness = 0.8;
+      metalness = 0.05;
+      kind = "planter";
+    } else if (key.includes("block") || key.includes("stone")) {
+      color = "#9e9e9e";
+      roughness = 0.95;
+      metalness = 0.02;
+      kind = "stone";
     }
 
-    // Shared material for main parts
-
-    // Apply override after type defaults (so UI choice wins)
+    // User-selected color override ("" = Auto/type default)
+    const userHasOverride = typeof o.color === "string" && o.color.length > 0;
     if (userHasOverride) {
       color = colorToHex(o.color);
     }
+
+
+    // Shared material for main parts
 
     const mainMat = (
       <meshStandardMaterial
