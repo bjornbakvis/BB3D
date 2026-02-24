@@ -244,8 +244,7 @@ if (userHasOverride) {
                     color,
                     isWhiteMaterial
                       ? -0.10
-                      : color === "#000000"
-                        ? 0.15
+                      : color === "#000000" ? 0.35
                         : -0.12
                   )
                 : "#8b6a4a"
