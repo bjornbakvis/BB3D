@@ -121,11 +121,6 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     
 
     // User override: keep pro type look by default, but let UI-selected color win.
-    // Default (no override) = empty string / undefined.
-    const userHasOverride = typeof o.color === "string" && o.color.length > 0;
-    if (userHasOverride) {
-      color = colorToHex(o.color);
-    }
 // We'll also use a simple "kind" to decide shapes
     let kind = "default";
  // wood | counter | ceramic | planter | stone | default
@@ -180,7 +175,14 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
             roughness = 0.85;
             metalness = 0.05;
             kind = "wood";
-          } else if (k.includes("counter")) {
+          }
+
+    // User override: apply AFTER type defaults so it truly overrides them.
+    const userHasOverride = typeof o.color === "string" && o.color.length > 0;
+    if (userHasOverride) {
+      color = colorToHex(o.color);
+    }
+ else if (k.includes("counter")) {
             color = "#e5e5e5";
             roughness = 0.6;
             metalness = 0.1;
