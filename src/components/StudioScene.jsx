@@ -113,38 +113,67 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let metalness = 0.05;
 
     switch (o.presetKey) {
-      case "kastje":
+      // Bathrooms
+      case "bath_cabinet_60":
+      // Toilets
+      case "toilet_cabinet_40":
         color = "#c49a6c"; // warm wood tone
         roughness = 0.85;
         metalness = 0.05;
         break;
 
-      case "blad":
+      case "bath_counter_120":
         color = "#e5e5e5"; // light stone/laminate
         roughness = 0.6;
         metalness = 0.1;
         break;
 
-      case "wastafel":
-      case "toilet":
+      case "bath_sink":
+      case "toilet_toilet":
         color = "#f8f8f8"; // ceramic white
         roughness = 0.35;
         metalness = 0.05;
         break;
 
-      case "plantenbak":
+      // Garden
+      case "garden_planter":
         color = "#bdbdbd"; // stone planter
         roughness = 0.8;
         metalness = 0.05;
         break;
 
-      case "steen":
+      case "garden_block":
         color = "#9e9e9e"; // outdoor stone
         roughness = 0.95;
         metalness = 0.02;
         break;
 
       default:
+        // Fallbacks (helps if new keys are added later)
+        if (typeof o.presetKey === "string") {
+          const k = o.presetKey;
+          if (k.includes("cabinet")) {
+            color = "#c49a6c";
+            roughness = 0.85;
+            metalness = 0.05;
+          } else if (k.includes("counter")) {
+            color = "#e5e5e5";
+            roughness = 0.6;
+            metalness = 0.1;
+          } else if (k.includes("sink") || k.includes("toilet")) {
+            color = "#f8f8f8";
+            roughness = 0.35;
+            metalness = 0.05;
+          } else if (k.includes("planter")) {
+            color = "#bdbdbd";
+            roughness = 0.8;
+            metalness = 0.05;
+          } else if (k.includes("block") || k.includes("stone")) {
+            color = "#9e9e9e";
+            roughness = 0.95;
+            metalness = 0.02;
+          }
+        }
         break;
     }
 
