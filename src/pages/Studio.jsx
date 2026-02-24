@@ -310,6 +310,83 @@ export default function Studio() {
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
 
+
+    // --- PRO SNAPPOINTS (C3) ---
+    // Stability-first: only add narrow, type-specific snaps without changing existing magnet/collision.
+    const movingObj = (objectsNow || []).find((o) => o && o.id === id) || null;
+    const movingType = movingObj?.type || "";
+    const movingPresetKey = movingObj?.presetKey || "";
+
+    // Helper: near check
+    const near = (a, b, tol) => Math.abs(a - b) <= tol;
+
+    // Countertop: snap to the center between 2 cabinets when widths match (e.g. 120cm on 2x60cm).
+    // This is "configurator behavior" and only triggers when the countertop is near the cabinets row.
+    if (movingType === "Countertop") {
+      const cabinets = others.filter((o) => (o?.type || "") === "Cabinet");
+      if (cabinets.length >= 2) {
+        const tolLane = 0.15;   // how strict they must be aligned on Z
+        const tolAdj = 0.14;    // how strict they must be "next to each other"
+        const tolWidth = 0.08;  // width match tolerance (meters)
+        const tolNear = 0.45;   // how close countertop must be to trigger snap
+
+        // For now: only support rotY ~ 0 to avoid confusing snaps for rotated slabs.
+        if (Math.abs(((rotY || 0) % 360 + 360) % 360) < 0.5 || Math.abs((((rotY || 0) % 360 + 360) % 360) - 180) < 0.5) {
+          // Try all pairs and pick the best candidate (closest snap).
+          let bestPair = null;
+          let bestDist2 = Infinity;
+
+          for (let i = 0; i < cabinets.length; i++) {
+            for (let j = i + 1; j < cabinets.length; j++) {
+              const a = cabinets[i];
+              const b = cabinets[j];
+
+              const ax = Number(a.x ?? 0), az = Number(a.z ?? 0), ay = Number(a.y ?? 0);
+              const bx = Number(b.x ?? 0), bz = Number(b.z ?? 0), by = Number(b.y ?? 0);
+              const aw = Number(a.w ?? 0), ad = Number(a.d ?? 0), ah = Number(a.h ?? 0);
+              const bw = Number(b.w ?? 0), bd = Number(b.d ?? 0), bh = Number(b.h ?? 0);
+
+              // Must be on same "row" (Z) and same top height (Y)
+              const topA = ay + ah;
+              const topB = by + bh;
+              if (!near(az, bz, tolLane)) continue;
+              if (!near(topA, topB, 0.04)) continue;
+
+              // Must be adjacent on X (side-by-side), not overlapping too much, not far apart.
+              const centerDx = Math.abs(ax - bx);
+              const wantDx = (aw / 2) + (bw / 2);
+              if (!near(centerDx, wantDx, tolAdj)) continue;
+
+              // Width match: countertop width should match sum of cabinet widths
+              const sumW = aw + bw;
+              if (Math.abs(w - sumW) > tolWidth) continue;
+
+              // Candidate snap position: midpoint between cabinets, same Z lane, and on top.
+              const cx = (ax + bx) / 2;
+              const cz = (az + bz) / 2;
+              const cy = Math.max(topA, topB);
+
+              // Only trigger if countertop is near this candidate
+              const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+              if (d2 > tolNear * tolNear) continue;
+
+              if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestPair = { x: cx, z: cz, y: cy };
+              }
+            }
+          }
+
+          if (bestPair) {
+            // Snap X/Z to the pair center, and set Y to the cabinet top (counter sits on cabinets).
+            nx = clamp(bestPair.x, minX, maxX);
+            nz = clamp(bestPair.z, minZ, maxZ);
+            ny = bestPair.y;
+          }
+        }
+      }
+    }
+
     // --- STAPELEN (stacking) ---
     // Als het object "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
     // Pro UX: in het midden van de kamer helpen we extra met een ruimere "capture zone" + auto-centre (Optie A).
