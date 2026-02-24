@@ -167,7 +167,7 @@ if (userHasOverride) {
         roughness={roughness}
         metalness={metalness}
         emissive={whiteBoost ? "#ffffff" : "#000000"}
-        emissiveIntensity={whiteBoost ? 0.12 : 0}
+        emissiveIntensity={whiteBoost ? 0.22 : 0}
       />
     );
 
