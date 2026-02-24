@@ -151,7 +151,10 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
 
     // User-selected color override ("" = Auto/type default)
     const userHasOverride = typeof o.color === "string" && o.color.length > 0;
-    if (userHasOverride) {
+    
+
+    const whiteBoost = userHasOverride && o.color === "White";
+if (userHasOverride) {
       color = colorToHex(o.color);
     }
 
@@ -163,8 +166,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
         color={color}
         roughness={roughness}
         metalness={metalness}
-        emissive={"#000000"}
-        emissiveIntensity={0}
+        emissive={whiteBoost ? "#ffffff" : "#000000"}
+        emissiveIntensity={whiteBoost ? 0.12 : 0}
       />
     );
 
@@ -190,8 +193,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={color}
               roughness={Math.min(1, roughness + 0.1)}
               metalness={metalness}
-              emissive={"#000000"}
-              emissiveIntensity={0}
+              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
         </group>
@@ -217,8 +220,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={userHasOverride ? color : "#8b6a4a"}
               roughness={0.95}
               metalness={0.02}
-              emissive={"#000000"}
-              emissiveIntensity={0}
+              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
           {/* tiny handle hint */}
@@ -228,8 +231,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#3a3a3a"}
               roughness={0.35}
               metalness={0.6}
-              emissive={"#000000"}
-              emissiveIntensity={0}
+              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
         </group>
@@ -265,8 +268,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
                 color={"#3a3a3a"}
                 roughness={0.2}
                 metalness={0.8}
-                emissive={"#000000"}
-                emissiveIntensity={0}
+                emissive={whiteBoost ? "#ffffff" : "#000000"}
+                emissiveIntensity={whiteBoost ? 0.12 : 0}
               />
             </mesh>
           </group>
@@ -325,8 +328,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#4a3428"}
               roughness={0.98}
               metalness={0.02}
-              emissive={"#000000"}
-              emissiveIntensity={0}
+              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
 
@@ -337,8 +340,8 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
               color={"#2f7d32"}
               roughness={0.95}
               metalness={0.0}
-              emissive={"#000000"}
-              emissiveIntensity={0}
+              emissive={whiteBoost ? "#ffffff" : "#000000"}
+              emissiveIntensity={whiteBoost ? 0.12 : 0}
             />
           </mesh>
         </group>
