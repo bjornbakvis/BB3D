@@ -117,71 +117,9 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     let roughness = 0.9;
     let metalness = 0.05;
 
-
-    
-
-    // User override: keep pro type look by default, but let UI-selected color win.
-// We'll also use a simple "kind" to decide shapes
-    let kind = "default";
- // wood | counter | ceramic | planter | stone | default
-
-    switch (o.presetKey) {
-      // Bathrooms
-      case "bath_cabinet_60":
-      // Toilets
-      case "toilet_cabinet_40":
-        color = "#c49a6c"; // warm wood tone
-        roughness = 0.85;
-        metalness = 0.05;
-        kind = "wood";
-        break;
-
-      case "bath_counter_120":
-        color = "#e5e5e5"; // light stone/laminate
-        roughness = 0.6;
-        metalness = 0.1;
-        kind = "counter";
-        break;
-
-      case "bath_sink":
-      case "toilet_toilet":
-        color = "#f8f8f8"; // ceramic white
-        roughness = 0.35;
-        metalness = 0.05;
-        kind = "ceramic";
-        break;
-
-      // Garden
-      case "garden_planter":
-        color = "#bdbdbd"; // stone planter
-        roughness = 0.8;
-        metalness = 0.05;
-        kind = "planter";
-        break;
-
-      case "garden_block":
-        color = "#9e9e9e"; // outdoor stone
-        roughness = 0.95;
-        metalness = 0.02;
-        kind = "stone";
-        break;
-
-      default:
-        // Fallbacks (helps if new keys are added later)
-        if (typeof o.presetKey === "string") {
-          const k = o.presetKey;
-          if (k.includes("cabinet")) {
-            color = "#c49a6c";
-            roughness = 0.85;
-            metalness = 0.05;
-            kind = "wood";
-          }
-
-    // User override: apply AFTER type defaults so it truly overrides them.
+    // User-selected color override ("" = Auto/type default)
     const userHasOverride = typeof o.color === "string" && o.color.length > 0;
-    if (userHasOverride) {
-      color = colorToHex(o.color);
-    }
+
  else if (k.includes("counter")) {
             color = "#e5e5e5";
             roughness = 0.6;
@@ -208,6 +146,12 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     }
 
     // Shared material for main parts
+
+    // Apply override after type defaults (so UI choice wins)
+    if (userHasOverride) {
+      color = colorToHex(o.color);
+    }
+
     const mainMat = (
       <meshStandardMaterial
         color={color}
