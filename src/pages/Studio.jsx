@@ -309,9 +309,8 @@ export default function Studio() {
 
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
-
-    let forcedStack = null;
-
+    const DEBUG_SNAPS = false;
+    let snapCandidate = null; // { x, y, z, reason }
 
     // --- PRO SNAPPOINTS (C3) ---
     // Stability-first: only add narrow, type-specific snaps without changing existing magnet/collision.
@@ -382,11 +381,17 @@ export default function Studio() {
           if (bestPair) {
             // De uiteindelijke "stack" beslissing gebeurt lager in de stacking-sectie.
             // We geven hier alleen een voorstel door.
-            forcedStack = { x: bestPair.x, z: bestPair.z, y: bestPair.y };
+            snapCandidate = { x: bestPair.x, z: bestPair.z, y: bestPair.y, reason: "countertop_on_two_cabinets" };
           }
         }
       }
     }
+    if (DEBUG_SNAPS && snapCandidate) {
+      // eslint-disable-next-line no-console
+      console.log("[snap]", snapCandidate.reason, { x: snapCandidate.x, y: snapCandidate.y, z: snapCandidate.z });
+    }
+
+
 
     // --- STAPELEN (stacking) ---
     // Als het object "bovenop" een ander object past, dan laten we hem klikken op de bovenkant.
@@ -399,12 +404,12 @@ export default function Studio() {
     let bestCenter = null;
 
 
-    if (forcedStack) {
-      bestY = forcedStack.y;
-      bestCenter = { x: forcedStack.x, z: forcedStack.z };
+    if (snapCandidate) {
+      bestY = snapCandidate.y;
+      bestCenter = { x: snapCandidate.x, z: snapCandidate.z };
     }
 
-    if (!forcedStack) {
+    if (!snapCandidate) {
       for (const o of others) {
       const ox = Number(o.x ?? 0);
       const oz = Number(o.z ?? 0);
