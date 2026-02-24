@@ -154,6 +154,9 @@ function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove,
     
 
     const isWhiteMaterial = (userHasOverride && o.color === "White") || (!userHasOverride && (kind === "ceramic"));
+    // Backwards-compatible alias (some parts may still reference whiteBoost)
+    const whiteBoost = isWhiteMaterial;
+
 if (userHasOverride) {
       color = colorToHex(o.color);
     }
