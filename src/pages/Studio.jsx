@@ -311,7 +311,6 @@ export default function Studio() {
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
     const DEBUG_SNAPS = false;
     let snapCandidate = null; // { x, y, z, reason }
-    let wallSnapReason = null; // string when a wall-flush snap was applied (C3.4)
 
     // --- PRO SNAPPOINTS (C3) ---
     // Stability-first: only add narrow, type-specific snaps without changing existing magnet/collision.
@@ -518,57 +517,9 @@ const split = allowLeftRight ? Math.max(0.10, maxOffsetX * 0.5) : 999;
       }
     }
 
-
-
-    // Cabinet: flush-snap tegen de muur (C3.4).
-    // Pro planner gedrag: kast achterzijde ligt strak tegen de dichtstbijzijnde muur (zonder center-offset gevoel).
-    // Stability-first: we passen alleen nx/nz aan; collision/magnet/stacking blijven leidend.
-    if (movingType === "Cabinet") {
-      const tolWall = 0.28; // hoe dichtbij je een muur moet zijn om te "pakken" (meters)
-
-      // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
-      const rot = (((rotY || 0) % 360) + 360) % 360;
-      const rotOk = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
-
-      if (rotOk) {
-        const { ex: cex, ez: cez } = rotatedExtents(w, d, rotY);
-
-        const distMinX = Math.abs(nx - minX);
-        const distMaxX = Math.abs(maxX - nx);
-        const distMinZ = Math.abs(nz - minZ);
-        const distMaxZ = Math.abs(maxZ - nz);
-
-        const bestDist = Math.min(distMinX, distMaxX, distMinZ, distMaxZ);
-
-        if (bestDist <= tolWall) {
-          if (bestDist === distMinX) {
-            nx = minX + cex;
-            wallSnapReason = "cabinet_flush_minX";
-          } else if (bestDist === distMaxX) {
-            nx = maxX - cex;
-            wallSnapReason = "cabinet_flush_maxX";
-          } else if (bestDist === distMinZ) {
-            nz = minZ + cez;
-            wallSnapReason = "cabinet_flush_minZ";
-          } else {
-            nz = maxZ - cez;
-            wallSnapReason = "cabinet_flush_maxZ";
-          }
-
-          nx = clamp(nx, minX, maxX);
-          nz = clamp(nz, minZ, maxZ);
-        }
-      }
-    }
-
-if (DEBUG_SNAPS) {
-      if (snapCandidate) {
-        // eslint-disable-next-line no-console
-        console.log("[snap]", snapCandidate.reason, { x: snapCandidate.x, y: snapCandidate.y, z: snapCandidate.z });
-      } else if (wallSnapReason) {
-        // eslint-disable-next-line no-console
-        console.log("[snap]", wallSnapReason, { x: nx, y: ny, z: nz });
-      }
+if (DEBUG_SNAPS && snapCandidate) {
+      // eslint-disable-next-line no-console
+      console.log("[snap]", snapCandidate.reason, { x: snapCandidate.x, y: snapCandidate.y, z: snapCandidate.z });
     }
 
 
