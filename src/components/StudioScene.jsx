@@ -733,7 +733,7 @@ export default function StudioScene({
 
         {/* Visible floor (theme) */}
         <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
-          <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
+          <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
           <meshStandardMaterial map={floorTex} color="#ffffff" roughness={0.95} metalness={0} />
         </mesh>
 
@@ -767,7 +767,7 @@ export default function StudioScene({
             onPlaceAt?.(x0, z0);
           }}
           >
-          <planeGeometry args={[Math.max(2, roomW), Math.max(2, roomD)]} />
+          <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
           <meshStandardMaterial color="#ffffff" transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
 
