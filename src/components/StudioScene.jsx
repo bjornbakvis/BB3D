@@ -596,6 +596,80 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
   return null;
 }
 
+
+
+function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction }) {
+  const { camera } = useThree();
+  const lastNonceRef = useRef(null);
+
+  useEffect(() => {
+    if (!cameraAction || !cameraAction.nonce) return;
+    if (lastNonceRef.current === cameraAction.nonce) return;
+    lastNonceRef.current = cameraAction.nonce;
+
+    const c = controlsRef.current;
+    const base = Math.max(roomW, roomD);
+    const isoDist = Math.max(4.2, base * 1.35);
+    const isoY = Math.max(3.2, wallH * 1.25 + 0.9);
+
+    const setView = (pos, target) => {
+      camera.position.set(pos[0], pos[1], pos[2]);
+      camera.lookAt(target[0], target[1], target[2]);
+      if (c) {
+        c.target.set(target[0], target[1], target[2]);
+        c.update();
+      }
+    };
+
+    const type = cameraAction.type;
+
+    if (type === "reset" || type === "iso") {
+      setView([isoDist, isoY, isoDist], [0, 0, 0]);
+      return;
+    }
+
+    if (type === "top") {
+      const y = Math.max(6.0, wallH * 2.2 + 1.5);
+      // Kleine z-offset om singulariteit te voorkomen
+      setView([0, y, 0.001], [0, 0, 0]);
+      return;
+    }
+
+    if (type === "front") {
+      const dist = Math.max(4.2, base * 1.35);
+      const y = Math.max(1.6, wallH * 0.55);
+      const ty = Math.max(0.6, wallH * 0.35);
+      setView([0, y, dist], [0, ty, 0]);
+      return;
+    }
+
+    if (type === "focus") {
+      if (!selectedId) return;
+
+      const o = (objects || []).find((x) => x && x.id === selectedId);
+      if (!o) return;
+
+      const tx = Number(o.x ?? 0);
+      const tz = Number(o.z ?? 0);
+      const ty = Number(o.y ?? 0) + Number(o.h ?? 0) * 0.5;
+
+      if (c) {
+        const currentTarget = c.target.clone();
+        const dir = new THREE.Vector3().subVectors(camera.position, currentTarget);
+        const dist = Math.max(2.0, dir.length() || isoDist);
+        dir.normalize();
+
+        const newPos = new THREE.Vector3(tx, ty, tz).add(dir.multiplyScalar(dist));
+        setView([newPos.x, newPos.y, newPos.z], [tx, ty, tz]);
+      } else {
+        // Fallback: iso view gericht op object
+        setView([tx + isoDist, ty + isoY, tz + isoDist], [tx, ty, tz]);
+      }
+    }
+  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH]);
+
+  return null;
+}
 function ZoomOverlay({ controlsRef, minDistance, maxDistance }) {
   const [t, setT] = useState(0.35); // 0..1
   const rafLock = useRef(false);
@@ -693,6 +767,7 @@ export default function StudioScene({
   wallH = 2.4,
   showWalls = true,
   templateId = "bathroom",
+  cameraAction = null,
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
@@ -721,8 +796,8 @@ export default function StudioScene({
       <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
-        <CameraFramer controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
-        <directionalLight
+        \1        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
+<directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
           castShadow
