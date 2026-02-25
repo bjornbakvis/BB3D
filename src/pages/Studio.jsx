@@ -478,13 +478,17 @@ export default function Studio() {
             // Links / Midden / Rechts ankers (in wereld X, want rotOk beperkt tot 0/180)
             // Zorgt dat de wastafel binnen het blad blijft.
             const maxOffsetX = Math.max(0, cex - ex);
-            const leftX = cx - maxOffsetX;
-            const centerX = cx;
-            const rightX = cx + maxOffsetX;
 
-            // Kies target op basis van waar de gebruiker naartoe sleept (nx).
-            const split = Math.max(0.12, maxOffsetX * 0.5);
+// Als het blad maar nét breder is dan de wastafel (bv. 60cm meubel),
+// dan voelt links/rechts "springen" onprofessioneel. In dat geval: alleen midden snap.
+const allowLeftRight = maxOffsetX >= 0.14;
 
+const leftX = cx - maxOffsetX;
+const centerX = cx;
+const rightX = cx + maxOffsetX;
+
+// Kies target op basis van waar de gebruiker naartoe sleept (nx).
+const split = allowLeftRight ? Math.max(0.10, maxOffsetX * 0.5) : 999;
             let targetX = centerX;
             let reason = "sink_on_countertop_center";
 
