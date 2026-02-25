@@ -613,34 +613,60 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
     const isoY = Math.max(3.2, wallH * 1.25 + 0.9);
 
     const setView = (pos, target) => {
-      camera.position.set(pos[0], pos[1], pos[2]);
-      camera.lookAt(target[0], target[1], target[2]);
+      const tx = target[0];
+      const ty = target[1];
+      const tz = target[2];
+
+      // Always keep a sane up-vector
+      camera.up.set(0, 1, 0);
+
       if (c) {
-        c.target.set(target[0], target[1], target[2]);
-        c.update();
+        c.target.set(tx, ty, tz);
       }
+      camera.position.set(pos[0], pos[1], pos[2]);
+      camera.lookAt(tx, ty, tz);
+
+      if (c) c.update();
+    };
+
+    const getCurrentDistance = (targetVec) => {
+      if (c && typeof c.getDistance === "function") return Math.max(0.5, c.getDistance());
+      return Math.max(0.5, camera.position.distanceTo(targetVec));
     };
 
     const type = cameraAction.type;
 
-    if (type === "reset" || type === "iso") {
+    // Reset blijft een "comfort" iso view (vaste framing).
+    if (type === "reset") {
       setView([isoDist, isoY, isoDist], [0, 0, 0]);
       return;
     }
 
-    if (type === "top") {
-      const y = Math.max(6.0, wallH * 2.2 + 1.5);
-      // Kleine z-offset om singulariteit te voorkomen
-      setView([0, y, 0.001], [0, 0, 0]);
-      return;
-    }
+    // Presets: behoud zo veel mogelijk je huidige zoom (distance), zodat er niet "random" in/uit gezoomd wordt.
+    if (type === "iso" || type === "top" || type === "front") {
+      const target = new THREE.Vector3(0, 0, 0);
+      const dist = Math.max(3.0, Math.min(isoDist * 1.25, getCurrentDistance(target)));
 
-    if (type === "front") {
-      const dist = Math.max(4.2, base * 1.35);
-      const y = Math.max(1.6, wallH * 0.55);
-      const ty = Math.max(0.6, wallH * 0.35);
-      setView([0, y, dist], [0, ty, 0]);
-      return;
+      if (type === "iso") {
+        const dir = new THREE.Vector3(1, 0.85, 1).normalize();
+        const pos = target.clone().add(dir.multiplyScalar(dist));
+        setView([pos.x, pos.y, pos.z], [0, 0, 0]);
+        return;
+      }
+
+      if (type === "top") {
+        // Kleine z-offset om singulariteit te voorkomen (OrbitControls houdt hier niet van)
+        const pos = target.clone().add(new THREE.Vector3(0, 1, 0).multiplyScalar(dist));
+        setView([pos.x, pos.y, pos.z + 0.001], [0, 0, 0]);
+        return;
+      }
+
+      if (type === "front") {
+        // Front = kijk vanaf +Z richting oorsprong, met een klein beetje hoogte.
+        const pos = target.clone().add(new THREE.Vector3(0, 0.18, 1).normalize().multiplyScalar(dist));
+        setView([pos.x, pos.y, pos.z], [0, 0, 0]);
+        return;
+      }
     }
 
     if (type === "focus") {
@@ -653,18 +679,27 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       const tz = Number(o.z ?? 0);
       const ty = Number(o.y ?? 0) + Number(o.h ?? 0) * 0.5;
 
-      if (c) {
-        const currentTarget = c.target.clone();
-        const dir = new THREE.Vector3().subVectors(camera.position, currentTarget);
-        const dist = Math.max(2.0, dir.length() || isoDist);
-        dir.normalize();
+      // Object "radius" (ruw) voor een nette framing
+      const halfW = Math.max(0.05, Number(o.w ?? 0.4) * 0.5);
+      const halfD = Math.max(0.05, Number(o.d ?? 0.4) * 0.5);
+      const halfH = Math.max(0.05, Number(o.h ?? 0.6) * 0.5);
+      const radius = Math.max(halfW, halfD, halfH);
 
-        const newPos = new THREE.Vector3(tx, ty, tz).add(dir.multiplyScalar(dist));
-        setView([newPos.x, newPos.y, newPos.z], [tx, ty, tz]);
-      } else {
-        // Fallback: iso view gericht op object
-        setView([tx + isoDist, ty + isoY, tz + isoDist], [tx, ty, tz]);
-      }
+      // Meer "echte focus": zoom/framingsafstand gebaseerd op objectgrootte
+      const dist = Math.max(1.8, Math.min(isoDist * 1.25, radius * 3.2));
+
+      // Pro gedrag: focus "vanaf de voorkant" van het object (op basis van rotY).
+      // We nemen forward = (0,0,1) en draaien dat met rotY (graden).
+      const rotDeg = Number(o.rotY ?? 0);
+      const rotRad = THREE.MathUtils.degToRad(rotDeg);
+      const forward = new THREE.Vector3(Math.sin(rotRad), 0, Math.cos(rotRad));
+      const dir = forward.multiplyScalar(-1).add(new THREE.Vector3(0, 0.35, 0)).normalize();
+
+      const target = new THREE.Vector3(tx, ty, tz);
+      const pos = target.clone().add(dir.multiplyScalar(dist));
+
+      setView([pos.x, pos.y, pos.z], [tx, ty, tz]);
+      return;
     }
   }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH]);
 
