@@ -36,6 +36,12 @@ export default function Studio() {
   const [objects, setObjects] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
 
+  const [cameraAction, setCameraAction] = useState(null);
+
+  const requestCamera = (type) => {
+    setCameraAction({ type, selectedId, nonce: Date.now() });
+  };
+
   // Undo/Redo (A)
   const undoStackRef = useRef([]); // stack of {objects, selectedId}
   const redoStackRef = useRef([]); // stack of {objects, selectedId}
@@ -1003,7 +1009,31 @@ function handlePlaceAt(x, z) {
                 </div>
               </div>
 
+              <div className="flex items-center gap-2">
+
+
+                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("top")}>Top</button>
+
+
+                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("front")}>Front</button>
+
+
+                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("iso")}>Iso</button>
+
+
+                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selectedId} onClick={() => requestCamera("focus")}>Focus</button>
+
+
+                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("reset")}>Reset</button>
+
+
+              </div>
+
+
+
               <div className="text-xs text-black/45">
+
+
                 (3D komt hierna — dit is nu de “basis editor”)
               </div>
             </div>
@@ -1011,7 +1041,8 @@ function handlePlaceAt(x, z) {
             <div className="mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10">
               <StudioScene
   templateId={templateId}
-                objects={objects}
+                                cameraAction={cameraAction}
+objects={objects}
                 selectedId={selectedId}
                 tool={tool}
                 onPlaceAt={handlePlaceAt}
