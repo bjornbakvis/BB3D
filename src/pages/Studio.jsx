@@ -386,6 +386,57 @@ export default function Studio() {
         }
       }
     }
+
+    // Countertop: snap op 1 cabinet (C3.3) — zelfde "vloeiend" gevoel als bij 2 cabinets.
+    // Alleen als er nog geen snapCandidate is gekozen (dus 2-cabinet heeft voorrang).
+    if (movingType === "Countertop" && !snapCandidate) {
+      const cabinets = others.filter((o) => (o?.type || "") === "Cabinet");
+      if (cabinets.length > 0) {
+        const tolLane = 0.18;   // uitlijning op Z
+        const tolWidth = 0.08;  // breedte match tolerance (meters)
+        const tolNear = 0.55;   // hoe dichtbij om te triggeren
+
+        // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
+        const rot = (((rotY || 0) % 360) + 360) % 360;
+        const rotOk = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
+
+        if (rotOk) {
+          let best = null;
+          let bestDist2 = Infinity;
+
+          for (const c of cabinets) {
+            const cx = Number(c.x ?? 0);
+            const cz = Number(c.z ?? 0);
+            const cy = Number(c.y ?? 0);
+            const ch = Number(c.h ?? 0);
+
+            // Cabinet extents (respecteer rotatie)
+            const { ex: cex } = rotatedExtents(c.w, c.d, c.rotY);
+
+            // Cabinet moet in dezelfde rij liggen (Z) zodat het logisch voelt
+            if (Math.abs(cz - nz) > tolLane) continue;
+
+            // Breedte match: blad.w ≈ cabinet.w (we gebruiken extents zodat rotatie geen rare surprises geeft)
+            if (Math.abs(cex - ex) > tolWidth) continue;
+
+            // Trigger alleen als je in de buurt bent
+            const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+            if (d2 > tolNear * tolNear) continue;
+
+            if (d2 < bestDist2) {
+              bestDist2 = d2;
+              best = { x: cx, z: cz, y: cy + ch };
+            }
+          }
+
+          if (best) {
+            snapCandidate = { x: best.x, z: best.z, y: best.y, reason: "countertop_on_one_cabinet" };
+          }
+        }
+      }
+    }
+
+
     
 
     // Sink: snap naar het midden van een Countertop (C3.2).
