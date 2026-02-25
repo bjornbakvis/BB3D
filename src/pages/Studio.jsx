@@ -393,9 +393,10 @@ export default function Studio() {
     if (movingType === "Sink") {
       const countertops = others.filter((o) => (o?.type || "") === "Countertop");
       if (countertops.length > 0) {
-        const tolNear = 0.45;      // hoe dichtbij je moet zijn om te snappen (meters)
-        const tolFit = 0.04;       // kleine tolerantie zodat het niet te streng is
-        const centerCapture = 0.35; // hoe dicht bij het midden om te "pakken"
+        const tolNear = 0.55;        // hoe dichtbij je moet zijn om te snappen (meters)
+        const tolFit = 0.04;         // kleine tolerantie zodat het niet te streng is
+        const zCapture = 0.40;       // hoe strak op Z we willen "pakken" (midden van het blad)
+        const xLaneCapture = 0.55;   // hoe ver van het midden we nog meerekenen voor links/rechts
 
         // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
         const rot = (((rotY || 0) % 360) + 360) % 360;
@@ -416,21 +417,46 @@ export default function Studio() {
             // Past de wastafel binnen het blad?
             if (cex + tolFit < ex || cez + tolFit < ez) continue;
 
-            // Dichtbij genoeg + in de buurt van het midden
-            const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
-            if (d2 > tolNear * tolNear) continue;
-            if (Math.abs(nx - cx) > centerCapture) continue;
-            if (Math.abs(nz - cz) > centerCapture) continue;
+            // Dichtbij genoeg (globaal)
+            const d2center = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+            if (d2center > tolNear * tolNear) continue;
 
+            // We houden Z netjes in het midden (voor nu).
+            if (Math.abs(nz - cz) > zCapture) continue;
+
+            // Links / Midden / Rechts ankers (in wereld X, want rotOk beperkt tot 0/180)
+            // Zorgt dat de wastafel binnen het blad blijft.
+            const maxOffsetX = Math.max(0, cex - ex);
+            const leftX = cx - maxOffsetX;
+            const centerX = cx;
+            const rightX = cx + maxOffsetX;
+
+            // Kies target op basis van waar de gebruiker naartoe sleept (nx).
+            const split = Math.max(0.12, maxOffsetX * 0.5);
+
+            let targetX = centerX;
+            let reason = "sink_on_countertop_center";
+
+            if (nx < cx - split && Math.abs(nx - leftX) <= xLaneCapture) {
+              targetX = leftX;
+              reason = "sink_on_countertop_left";
+            } else if (nx > cx + split && Math.abs(nx - rightX) <= xLaneCapture) {
+              targetX = rightX;
+              reason = "sink_on_countertop_right";
+            } else {
+              targetX = centerX;
+              reason = "sink_on_countertop_center";
+            }
+
+            const d2 = (nx - targetX) * (nx - targetX) + (nz - cz) * (nz - cz);
             if (d2 < bestDist2) {
               bestDist2 = d2;
-              best = { x: cx, z: cz, y: cy + ch };
+              best = { x: targetX, z: cz, y: cy + ch, reason };
             }
           }
 
           if (best) {
-            // Voorstel doorgeven; stacking-sectie handelt uiteindelijke positionering af.
-            snapCandidate = { x: best.x, z: best.z, y: best.y, reason: "sink_on_countertop_center" };
+            snapCandidate = { x: best.x, z: best.z, y: best.y, reason: best.reason };
           }
         }
       }
