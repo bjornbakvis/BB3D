@@ -386,7 +386,57 @@ export default function Studio() {
         }
       }
     }
-    if (DEBUG_SNAPS && snapCandidate) {
+    
+
+    // Sink: snap naar het midden van een Countertop (C3.2).
+    // Doel: pro configurator-gevoel; alleen actief als er een countertop in de buurt is en de wastafel daarop past.
+    if (movingType === "Sink") {
+      const countertops = others.filter((o) => (o?.type || "") === "Countertop");
+      if (countertops.length > 0) {
+        const tolNear = 0.45;      // hoe dichtbij je moet zijn om te snappen (meters)
+        const tolFit = 0.04;       // kleine tolerantie zodat het niet te streng is
+        const centerCapture = 0.35; // hoe dicht bij het midden om te "pakken"
+
+        // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
+        const rot = (((rotY || 0) % 360) + 360) % 360;
+        const rotOk = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
+
+        if (rotOk) {
+          let best = null;
+          let bestDist2 = Infinity;
+
+          for (const c of countertops) {
+            const cx = Number(c.x ?? 0);
+            const cz = Number(c.z ?? 0);
+            const cy = Number(c.y ?? 0);
+            const ch = Number(c.h ?? 0);
+
+            const { ex: cex, ez: cez } = rotatedExtents(c.w, c.d, c.rotY);
+
+            // Past de wastafel binnen het blad?
+            if (cex + tolFit < ex || cez + tolFit < ez) continue;
+
+            // Dichtbij genoeg + in de buurt van het midden
+            const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+            if (d2 > tolNear * tolNear) continue;
+            if (Math.abs(nx - cx) > centerCapture) continue;
+            if (Math.abs(nz - cz) > centerCapture) continue;
+
+            if (d2 < bestDist2) {
+              bestDist2 = d2;
+              best = { x: cx, z: cz, y: cy + ch };
+            }
+          }
+
+          if (best) {
+            // Voorstel doorgeven; stacking-sectie handelt uiteindelijke positionering af.
+            snapCandidate = { x: best.x, z: best.z, y: best.y, reason: "sink_on_countertop_center" };
+          }
+        }
+      }
+    }
+
+if (DEBUG_SNAPS && snapCandidate) {
       // eslint-disable-next-line no-console
       console.log("[snap]", snapCandidate.reason, { x: snapCandidate.x, y: snapCandidate.y, z: snapCandidate.z });
     }
