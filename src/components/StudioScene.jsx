@@ -511,30 +511,41 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
   // Determine which wall faces the camera the most (option 3: auto-hide)
   const [hiddenWall, setHiddenWall] = useState("front");
 
-  // Update hidden wall dynamically while the camera rotates (dollhouse view)
-  useFrame(() => {
-    const center = new THREE.Vector3(0, wallH / 2, 0);
-    const camDir = new THREE.Vector3().subVectors(camera.position, center).normalize();
-
-    const candidates = [
+  // IMPORTANT (stability/perf):
+  // Avoid allocations and state-calls every frame. We only set state when the winner changes.
+  const bestRef = useRef("front");
+  const centerRef = useRef(new THREE.Vector3());
+  const camDirRef = useRef(new THREE.Vector3());
+  const candidates = useMemo(
+    () => [
       { key: "back", normal: new THREE.Vector3(0, 0, -1) },
       { key: "front", normal: new THREE.Vector3(0, 0, 1) },
       { key: "left", normal: new THREE.Vector3(-1, 0, 0) },
       { key: "right", normal: new THREE.Vector3(1, 0, 0) },
-    ];
+    ],
+    []
+  );
+
+  // Update hidden wall dynamically while the camera rotates (dollhouse view)
+  useFrame(() => {
+    centerRef.current.set(0, wallH / 2, 0);
+    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
     let best = candidates[0].key;
     let bestDot = -Infinity;
+
     for (const c of candidates) {
-      const d = camDir.dot(c.normal);
+      const d = camDirRef.current.dot(c.normal);
       if (d > bestDot) {
         bestDot = d;
         best = c.key;
       }
     }
 
-    // Avoid re-render spam
-    setHiddenWall((prev) => (prev === best ? prev : best));
+    if (bestRef.current !== best) {
+      bestRef.current = best;
+      setHiddenWall(best);
+    }
   });
 
   if (!showWalls) return null;
@@ -818,6 +829,13 @@ export default function StudioScene({
     return t;
   }, [theme, roomW, roomD]);
 
+  // Prevent texture leaks when room/theme changes (stability on long sessions)
+  useEffect(() => {
+    return () => {
+      try { floorTex?.dispose?.(); } catch {}
+    };
+  }, [floorTex]);
+
   const wallTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.wall.c1, c2: theme.wall.c2, squares: theme.wall.squares });
     const repsX = Math.max(1, roomW / theme.wall.tileSize);
@@ -826,12 +844,18 @@ export default function StudioScene({
     return t;
   }, [theme, roomW, roomD]);
 
+  useEffect(() => {
+    return () => {
+      try { wallTex?.dispose?.(); } catch {}
+    };
+  }, [wallTex]);
+
   return (
     <div className="relative h-full w-full">
       <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
-        \1        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
+                <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
 <directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
