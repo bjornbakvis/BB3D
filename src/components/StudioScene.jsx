@@ -3,18 +3,64 @@ import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 
-
-// Keep the template default camera view in ONE place so Reset can return to the exact same framing.
-function getTemplateDefaultView(roomW, roomD, wallH) {
-  return {
-    position: [
-      Math.max(4, roomW * 1.2),
-      Math.max(3.2, wallH * 1.25 + 1),
-      Math.max(4, roomD * 1.2),
-    ],
-    target: [0, 0, 0],
-  };
+function isWebGLAvailable() {
+  // Guard for SSR / non-browser environments
+  if (typeof window === "undefined" || typeof document === "undefined") return true;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
+      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }) ||
+      canvas.getContext("experimental-webgl");
+    return !!gl;
+  } catch {
+    return false;
+  }
 }
+
+function WebGLBlockedNotice() {
+  return (
+    <div className="h-full w-full flex items-center justify-center p-6">
+      <div className="max-w-xl rounded-2xl bg-white/5 p-6 shadow-lg border border-white/10">
+        <div className="text-lg font-semibold mb-2">WebGL is uitgeschakeld in je browser</div>
+        <div className="text-sm opacity-90 mb-4">
+          Je browser kon geen WebGL-context aanmaken (vaak door enterprise policy, een browser-flag, of hardware acceleration die uit staat).
+          BB3D Studio kan dan geen 3D renderen.
+        </div>
+
+        <div className="text-sm font-semibold mb-2">Snelle stappen</div>
+        <ol className="text-sm list-decimal pl-5 space-y-1 opacity-90">
+          <li>Open <span className="font-mono">chrome://gpu</span> en controleer of <span className="font-semibold">WebGL</span> niet “Disabled” is.</li>
+          <li>Chrome → Settings → System → zet <span className="font-semibold">Use hardware acceleration when available</span> aan → herstart Chrome.</li>
+          <li>Probeer een ander browserprofiel (niet-incognito) of een andere browser (Edge/Firefox).</li>
+          <li>Als dit een managed werkdevice is: vraag IT om WebGL toe te staan.</li>
+        </ol>
+
+        <div className="mt-4 text-xs opacity-70">
+          Tip: als dit alleen in incognito gebeurt, is dat vaak een policy/profiel-instelling.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+class WebGLErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    try { this.props.onError?.(error); } catch {}
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback || null;
+    return this.props.children;
+  }
+}
+
 
 function colorToHex(name) {
   switch (name) {
@@ -660,10 +706,9 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
 
     const type = cameraAction.type;
 
-    // Reset: ga exact terug naar de template-default view (zelfde framing als bij template-wissel).
+    // Reset blijft een "comfort" iso view (vaste framing).
     if (type === "reset") {
-      const def = getTemplateDefaultView(roomW, roomD, wallH);
-      setView(def.position, def.target);
+      setView([isoDist, isoY, isoDist], [0, 0, 0]);
       return;
     }
 
@@ -829,12 +874,13 @@ export default function StudioScene({
   templateId = "bathroom",
   cameraAction = null,
 }) {
+  const __webglInitial = useMemo(() => isWebGLAvailable(), []);
+  const [__webglOk, set__webglOk] = useState(__webglInitial);
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
-  const templateDefaultView = useMemo(() => getTemplateDefaultView(roomW, roomD, wallH), [roomW, roomD, wallH]);
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -865,9 +911,18 @@ export default function StudioScene({
     };
   }, [wallTex]);
 
+  if (!__webglOk) {
+    return (
+      <div className="relative h-full w-full">
+        <WebGLBlockedNotice />
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: templateDefaultView.position, fov: 50 }} shadows gl={{ antialias: true }}>
+      <WebGLErrorBoundary fallback={<WebGLBlockedNotice />} onError={() => set__webglOk(false)}>
+        <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
                 <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
@@ -960,6 +1015,7 @@ export default function StudioScene({
           target={[0, 0, 0]}
         />
 </Canvas>
+      </WebGLErrorBoundary>
 
       {/* Zoom UI overlay (DOM) */}
       <ZoomOverlay controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
