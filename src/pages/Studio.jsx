@@ -49,6 +49,9 @@ export default function Studio() {
   const [canRedo, setCanRedo] = useState(false);
 
   function deepClone(v) {
+    // Stability: prefer structuredClone when available (keeps numbers/arrays safer & faster).
+    // Fallback stays JSON-based (objects in this app are plain data).
+    if (typeof structuredClone === "function") return structuredClone(v);
     return JSON.parse(JSON.stringify(v));
   }
 
