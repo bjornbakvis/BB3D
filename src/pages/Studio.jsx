@@ -308,17 +308,13 @@ export default function Studio() {
     const nh = Number(h ?? 0);
 
     // "Magnet" distance (how close is considered 'snap')
-    // IMPORTANT: wall snapping uses minX/minZ which already include wallGap.
-    // If we want the *visible gap* threshold to match object-to-object magnet,
-    // we must subtract wallGap once.
-    const objectMagnet = 0.06; // meters (object ↔ object)
-    const wallMagnet = Math.max(0, objectMagnet - wallGap); // meters (wall ↔ object)
+    const magnet = 0.06;
 
     // Snap to walls (touching)
-    if (Math.abs(nx - minX) <= wallMagnet) nx = minX;
-    if (Math.abs(nx - maxX) <= wallMagnet) nx = maxX;
-    if (Math.abs(nz - minZ) <= wallMagnet) nz = minZ;
-    if (Math.abs(nz - maxZ) <= wallMagnet) nz = maxZ;
+    if (Math.abs(nx - minX) <= magnet) nx = minX;
+    if (Math.abs(nx - maxX) <= magnet) nx = maxX;
+    if (Math.abs(nz - minZ) <= magnet) nz = minZ;
+    if (Math.abs(nz - maxZ) <= magnet) nz = maxZ;
 
     // Snap / prevent overlap with other objects (simple AABB with rotation-safe extents)
     const others = (objectsNow || []).filter((o) => o && o.id !== id);
@@ -670,8 +666,8 @@ if (DEBUG_SNAPS) {
       // Only snap X if we are roughly aligned in Z (overlapping "lane")
       const zOverlap = Math.abs(nz - oz) <= (oez + ez + 0.02);
       if (zOverlap) {
-        if (Math.abs(nx - touchRight) <= objectMagnet) nx = touchRight;
-        if (Math.abs(nx - touchLeft) <= objectMagnet) nx = touchLeft;
+        if (Math.abs(nx - touchRight) <= magnet) nx = touchRight;
+        if (Math.abs(nx - touchLeft) <= magnet) nx = touchLeft;
       }
 
       // Candidate snap positions on Z
@@ -680,8 +676,8 @@ if (DEBUG_SNAPS) {
 
       const xOverlap = Math.abs(nx - ox) <= (oex + ex + 0.02);
       if (xOverlap) {
-        if (Math.abs(nz - touchFront) <= objectMagnet) nz = touchFront;
-        if (Math.abs(nz - touchBack) <= objectMagnet) nz = touchBack;
+        if (Math.abs(nz - touchFront) <= magnet) nz = touchFront;
+        if (Math.abs(nz - touchBack) <= magnet) nz = touchBack;
       }
 
       // Hard overlap prevention (resolve overlap deterministically)
