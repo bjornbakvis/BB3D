@@ -636,12 +636,9 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
 
     const type = cameraAction.type;
 
-    // Reset = exact terug naar de startweergave van het template (zelfde als Canvas camera init).
+    // Reset blijft een "comfort" iso view (vaste framing).
     if (type === "reset") {
-      const startX = Math.max(4, roomW * 1.2);
-      const startY = Math.max(3.2, wallH * 1.25 + 1);
-      const startZ = Math.max(4, roomD * 1.2);
-      setView([startX, startY, startZ], [0, 0, 0]);
+      setView([isoDist, isoY, isoDist], [0, 0, 0]);
       return;
     }
 
@@ -696,7 +693,7 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       const rotDeg = Number(o.rotY ?? 0);
       const rotRad = THREE.MathUtils.degToRad(rotDeg);
       const forward = new THREE.Vector3(Math.sin(rotRad), 0, Math.cos(rotRad));
-      const dir = forward.multiplyScalar(1).add(new THREE.Vector3(0, 0.35, 0)).normalize();
+      const dir = forward.multiplyScalar(-1).add(new THREE.Vector3(0, 0.35, 0)).normalize();
 
       const target = new THREE.Vector3(tx, ty, tz);
       const pos = target.clone().add(dir.multiplyScalar(dist));
