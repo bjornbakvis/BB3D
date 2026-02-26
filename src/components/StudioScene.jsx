@@ -3,6 +3,19 @@ import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 
+
+// Keep the template default camera view in ONE place so Reset can return to the exact same framing.
+function getTemplateDefaultView(roomW, roomD, wallH) {
+  return {
+    position: [
+      Math.max(4, roomW * 1.2),
+      Math.max(3.2, wallH * 1.25 + 1),
+      Math.max(4, roomD * 1.2),
+    ],
+    target: [0, 0, 0],
+  };
+}
+
 function colorToHex(name) {
   switch (name) {
     case "Wood":
@@ -647,9 +660,10 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
 
     const type = cameraAction.type;
 
-    // Reset blijft een "comfort" iso view (vaste framing).
+    // Reset: ga exact terug naar de template-default view (zelfde framing als bij template-wissel).
     if (type === "reset") {
-      setView([isoDist, isoY, isoDist], [0, 0, 0]);
+      const def = getTemplateDefaultView(roomW, roomD, wallH);
+      setView(def.position, def.target);
       return;
     }
 
@@ -820,6 +834,7 @@ export default function StudioScene({
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
+  const templateDefaultView = useMemo(() => getTemplateDefaultView(roomW, roomD, wallH), [roomW, roomD, wallH]);
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -852,7 +867,7 @@ export default function StudioScene({
 
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
+      <Canvas camera={{ position: templateDefaultView.position, fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
                 <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
