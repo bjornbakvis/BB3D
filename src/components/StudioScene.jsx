@@ -668,6 +668,25 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
 
 
 
+
+function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
+  // Save the "template default" OrbitControls state so Reset can return EXACTLY to it.
+  // This avoids drift from damping/velocity and guarantees pixel-identical reset.
+  useEffect(() => {
+    const c = controlsRef?.current;
+    if (!c) return;
+    // Ensure target is consistent with our default view
+    try {
+      c.target.set(0, 0, 0);
+      c.update();
+      c.saveState();
+    } catch {}
+  }, [controlsRef, roomW, roomD, wallH]);
+
+  return null;
+}
+
+
 function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction }) {
   const { camera } = useThree();
   const lastNonceRef = useRef(null);
@@ -709,6 +728,20 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
     // Reset = exact dezelfde default view als bij template-load (Canvas camera.position).
     // Dit verandert de default niet; het hergebruikt exact dezelfde formule.
     if (type === "reset") {
+      // Reset = EXACT terug naar de template-default view.
+      // We gebruiken OrbitControls.saveState()/reset() zodat er geen drift is (damping/velocity),
+      // en zodat het altijd pixel-identiek is aan de initiële template view.
+      if (c && typeof c.reset === "function") {
+        try {
+          camera.up.set(0, 1, 0);
+          c.reset();
+          c.update();
+          return;
+        } catch {
+          // fall through to hard-set view
+        }
+      }
+
       const defaultPos = [
         Math.max(4, roomW * 1.2),
         Math.max(3.2, wallH * 1.25 + 1),
@@ -931,7 +964,8 @@ export default function StudioScene({
         <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
-                <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
+                <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
+        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
 <directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
