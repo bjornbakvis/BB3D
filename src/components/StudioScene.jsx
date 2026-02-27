@@ -585,25 +585,36 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
     []
   );
 
+  // Professional stability: hysteresis prevents "wall flip" when the camera is near a boundary.
+  // Only switch the hidden wall if the new candidate is clearly more camera-facing than the current one.
+  const HIDDEN_WALL_HYSTERESIS = 0.04;
+
   // Update hidden wall dynamically while the camera rotates (dollhouse view)
   useFrame(() => {
     centerRef.current.set(0, wallH / 2, 0);
     camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
+    const currentKey = bestRef.current;
+
     let best = candidates[0].key;
     let bestDot = -Infinity;
+    let currentDot = -Infinity;
 
     for (const c of candidates) {
       const d = camDirRef.current.dot(c.normal);
+      if (c.key === currentKey) currentDot = d;
       if (d > bestDot) {
         bestDot = d;
         best = c.key;
       }
     }
 
-    if (bestRef.current !== best) {
-      bestRef.current = best;
-      setHiddenWall(best);
+    if (best !== currentKey) {
+      // Switch only if it's clearly better than the current wall (hysteresis).
+      if (bestDot > currentDot + HIDDEN_WALL_HYSTERESIS) {
+        bestRef.current = best;
+        setHiddenWall(best);
+      }
     }
   });
 
