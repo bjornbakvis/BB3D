@@ -706,9 +706,15 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
 
     const type = cameraAction.type;
 
-    // Reset blijft een "comfort" iso view (vaste framing).
+    // Reset = exact dezelfde default view als bij template-load (Canvas camera.position).
+    // Dit verandert de default niet; het hergebruikt exact dezelfde formule.
     if (type === "reset") {
-      setView([isoDist, isoY, isoDist], [0, 0, 0]);
+      const defaultPos = [
+        Math.max(4, roomW * 1.2),
+        Math.max(3.2, wallH * 1.25 + 1),
+        Math.max(4, roomD * 1.2),
+      ];
+      setView(defaultPos, [0, 0, 0]);
       return;
     }
 
