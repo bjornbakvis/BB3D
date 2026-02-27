@@ -570,42 +570,47 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
   // Determine which wall faces the camera the most (option 3: auto-hide)
   const [hiddenWall, setHiddenWall] = useState("front");
 
-  // IMPORTANT (stability/perf):
-  // Avoid allocations and state-calls every frame. We only set state when the winner changes.
-  const bestRef = useRef("front");
-  const centerRef = useRef(new THREE.Vector3());
-  const camDirRef = useRef(new THREE.Vector3());
-  const candidates = useMemo(
-    () => [
-      { key: "back", normal: new THREE.Vector3(0, 0, -1) },
-      { key: "front", normal: new THREE.Vector3(0, 0, 1) },
-      { key: "left", normal: new THREE.Vector3(-1, 0, 0) },
-      { key: "right", normal: new THREE.Vector3(1, 0, 0) },
-    ],
-    []
-  );
+// IMPORTANT (stability/perf):
+// Hidden wall must be deterministic and stable (no "flip" near boundaries after OrbitControls reset/damping).
 
-  // Update hidden wall dynamically while the camera rotates (dollhouse view)
-  useFrame(() => {
-    centerRef.current.set(0, wallH / 2, 0);
-    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
+const bestRef = useRef("front");
+const centerRef = useRef(new THREE.Vector3());
+const camDirRef = useRef(new THREE.Vector3());
 
-    let best = candidates[0].key;
-    let bestDot = -Infinity;
+// Professional stability:
+// Decide the hidden wall by the dominant horizontal camera direction (X vs Z).
+// This avoids ambiguous dot-product ties (e.g. perfect diagonal views) that can "flip" between walls.
+// Small hysteresis (dominance margin) prevents jitter when X and Z are very close.
+const DOMINANCE_MARGIN = 0.03; // dimensionless (normalized dir)
 
-    for (const c of candidates) {
-      const d = camDirRef.current.dot(c.normal);
-      if (d > bestDot) {
-        bestDot = d;
-        best = c.key;
-      }
-    }
+useFrame(() => {
+  centerRef.current.set(0, wallH / 2, 0);
+  camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
-    if (bestRef.current !== best) {
-      bestRef.current = best;
-      setHiddenWall(best);
-    }
-  });
+  const currentKey = bestRef.current;
+
+  const x = camDirRef.current.x;
+  const z = camDirRef.current.z;
+  const ax = Math.abs(x);
+  const az = Math.abs(z);
+
+  let best = currentKey;
+
+  // If one axis clearly dominates, pick the corresponding facing wall.
+  if (ax > az + DOMINANCE_MARGIN) {
+    best = x > 0 ? "right" : "left";
+  } else if (az > ax + DOMINANCE_MARGIN) {
+    best = z > 0 ? "front" : "back";
+  } else {
+    // Near-tie: keep the current wall to avoid flips.
+    best = currentKey;
+  }
+
+  if (best !== currentKey) {
+    bestRef.current = best;
+    setHiddenWall(best);
+  }
+});
 
   if (!showWalls) return null;
 
