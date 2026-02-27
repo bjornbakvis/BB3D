@@ -564,7 +564,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, resetNonce }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (option 3: auto-hide)
@@ -585,85 +585,27 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, resetNonce
     []
   );
 
-  // Locking window to prevent flips right after template changes or reset (OrbitControls damping can settle for a moment).
-  const lockUntilRef = useRef(0);
-  const LOCK_MS = 250;
+  // Update hidden wall dynamically while the camera rotates (dollhouse view)
+  useFrame(() => {
+    centerRef.current.set(0, wallH / 2, 0);
+    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
-  const pickBestWallFromDir = (dirVec, currentKey) => {
     let best = candidates[0].key;
     let bestDot = -Infinity;
-    let currentDot = -Infinity;
 
     for (const c of candidates) {
-      const d = dirVec.dot(c.normal);
-      if (c.key === currentKey) currentDot = d;
+      const d = camDirRef.current.dot(c.normal);
       if (d > bestDot) {
         bestDot = d;
         best = c.key;
       }
     }
-    return { best, bestDot, currentDot };
-  };
 
-  // Professional stability: hysteresis prevents "wall flip" when the camera is near a boundary.
-// Only switch the hidden wall if the new candidate is clearly more camera-facing than the current one.
-const HIDDEN_WALL_HYSTERESIS = 0.06; // slightly stronger (bathroom/toilet are often near a boundary)
-
-// When room dims change, align hidden wall to the template default view and lock briefly
-useEffect(() => {
-  // Template default camera position (must match Canvas camera.position formula)
-  const defaultPos = new THREE.Vector3(
-    Math.max(4, roomW * 1.2),
-    Math.max(3.2, wallH * 1.25 + 1),
-    Math.max(4, roomD * 1.2)
-  );
-
-  centerRef.current.set(0, wallH / 2, 0);
-  camDirRef.current.subVectors(defaultPos, centerRef.current).normalize();
-
-  const { best } = pickBestWallFromDir(camDirRef.current, bestRef.current);
-  bestRef.current = best;
-  setHiddenWall(best);
-
-  lockUntilRef.current = (typeof performance !== "undefined" ? performance.now() : Date.now()) + LOCK_MS;
-}, [roomW, roomD, wallH, LOCK_MS]);
-
-// When Reset is requested, lock briefly after the reset so damping can't flip the wall winner
-useEffect(() => {
-  if (!resetNonce) return;
-  // next frame: camera/controls have applied reset
-  const raf = requestAnimationFrame(() => {
-    centerRef.current.set(0, wallH / 2, 0);
-    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
-
-    const { best } = pickBestWallFromDir(camDirRef.current, bestRef.current);
-    bestRef.current = best;
-    setHiddenWall(best);
-
-    lockUntilRef.current = (typeof performance !== "undefined" ? performance.now() : Date.now()) + LOCK_MS;
-  });
-  return () => cancelAnimationFrame(raf);
-}, [resetNonce, camera, wallH]);
-
-// Update hidden wall dynamically while the camera rotates (dollhouse view)
-useFrame(() => {
-  const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
-  if (now < lockUntilRef.current) return;
-
-  centerRef.current.set(0, wallH / 2, 0);
-  camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
-
-  const currentKey = bestRef.current;
-  const { best, bestDot, currentDot } = pickBestWallFromDir(camDirRef.current, currentKey);
-
-  if (best !== currentKey) {
-    // Switch only if it's clearly better than the current wall (hysteresis).
-    if (bestDot > currentDot + HIDDEN_WALL_HYSTERESIS) {
+    if (bestRef.current !== best) {
       bestRef.current = best;
       setHiddenWall(best);
     }
-  }
-});
+  });
 
   if (!showWalls) return null;
 
@@ -1074,7 +1016,7 @@ export default function StudioScene({
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} resetNonce={cameraAction?.type === "reset" ? cameraAction.nonce : null} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} />
 
 
         {/* Blocks */}
