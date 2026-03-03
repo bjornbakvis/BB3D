@@ -564,48 +564,102 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
-  // Determine which wall faces the camera the most (option 3: auto-hide)
+  // Determine which wall faces the camera the most (auto-hide)
   const [hiddenWall, setHiddenWall] = useState("front");
 
   // IMPORTANT (stability/perf):
   // Avoid allocations and state-calls every frame. We only set state when the winner changes.
   const bestRef = useRef("front");
   const centerRef = useRef(new THREE.Vector3());
-  const camDirRef = useRef(new THREE.Vector3());
-  const candidates = useMemo(
-    () => [
-      { key: "back", normal: new THREE.Vector3(0, 0, -1) },
-      { key: "front", normal: new THREE.Vector3(0, 0, 1) },
-      { key: "left", normal: new THREE.Vector3(-1, 0, 0) },
-      { key: "right", normal: new THREE.Vector3(1, 0, 0) },
-    ],
-    []
-  );
 
-  // Update hidden wall dynamically while the camera rotates (dollhouse view)
-  useFrame(() => {
+  // During programmatic camera moves (Reset/Top/Front/Iso), OrbitControls + damping can emit
+  // intermediate "change" events. We suppress wall-updates briefly to prevent visible flicker.
+  const suppressRef = useRef(false);
+  const suppressTimerRef = useRef(null);
+
+  const computeHiddenWall = () => {
+    // Use camera position relative to a stable center.
+    // This is deterministic and independent of frame timing.
     centerRef.current.set(0, wallH / 2, 0);
-    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
-    let best = candidates[0].key;
-    let bestDot = -Infinity;
+    const dx = camera.position.x - centerRef.current.x;
+    const dz = camera.position.z - centerRef.current.z;
 
-    for (const c of candidates) {
-      const d = camDirRef.current.dot(c.normal);
-      if (d > bestDot) {
-        bestDot = d;
-        best = c.key;
+    const ax = Math.abs(dx);
+    const az = Math.abs(dz);
+
+    // Deadzone around the diagonal to avoid boundary jitter.
+    // X must be clearly dominant before we switch to left/right.
+    const DOM_RATIO = 1.12; // 12% dominance threshold
+
+    if (ax > az * DOM_RATIO) {
+      return dx >= 0 ? "right" : "left";
+    }
+    // Default to Z axis (front/back). This keeps Reset/iso views consistent.
+    return dz >= 0 ? "front" : "back";
+  };
+
+  // Update hidden wall on OrbitControls changes (NOT per-frame).
+  // This eliminates flip-flop caused by damping/float drift in useFrame.
+  useEffect(() => {
+    const c = controlsRef?.current;
+    if (!c) return;
+
+    const onChange = () => {
+      if (suppressRef.current) return;
+      const best = computeHiddenWall();
+      if (bestRef.current !== best) {
+        bestRef.current = best;
+        setHiddenWall(best);
       }
+    };
+
+    c.addEventListener("change", onChange);
+
+    // Initial compute (so first render is correct even before the first change event)
+    onChange();
+
+    return () => {
+      c.removeEventListener("change", onChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlsRef, wallH]);
+
+  // Suppress updates briefly when a programmatic camera action runs (reset/top/front/iso).
+  useEffect(() => {
+    if (!cameraAction || !cameraAction.nonce) return;
+
+    // Start suppression window
+    suppressRef.current = true;
+    if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
+
+    // Immediately set a deterministic hidden wall based on the current camera pose.
+    // (CameraActions runs in another component; this gives stable behavior even if order varies.)
+    const immediate = computeHiddenWall();
+    if (bestRef.current !== immediate) {
+      bestRef.current = immediate;
+      setHiddenWall(immediate);
     }
 
-    if (bestRef.current !== best) {
-      bestRef.current = best;
-      setHiddenWall(best);
-    }
-  });
+    suppressTimerRef.current = setTimeout(() => {
+      suppressRef.current = false;
+
+      // Final settle compute after the programmatic move finishes.
+      const best = computeHiddenWall();
+      if (bestRef.current !== best) {
+        bestRef.current = best;
+        setHiddenWall(best);
+      }
+    }, 250);
+
+    return () => {
+      if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraAction?.nonce, wallH]);
 
   if (!showWalls) return null;
 
@@ -1016,7 +1070,7 @@ export default function StudioScene({
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
