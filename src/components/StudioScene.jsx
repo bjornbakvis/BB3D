@@ -598,19 +598,22 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
 
     const ax = Math.abs(dx);
     const az = Math.abs(dz);
-    const EPS = 1e-6;
 
-    // Deterministic tie-breaking:
-    // If X and Z are (nearly) equal (e.g. default iso view where x≈z),
-    // we MUST still pick a consistent wall, otherwise Reset can "stick" to the previous winner.
-    // Priority at ties: Z axis wins (front/back) over X axis (left/right).
+    // Deterministic hidden-wall selection with a small "deadzone" around the diagonal:
+    // - We still avoid per-frame dot-product winners (no flip-flop from float drift)
+    // - But we also avoid "sometimes front, sometimes right" on Reset when the saved camera
+    //   lands near the diagonal with tiny numeric differences.
+    //
+    // Rule:
+    //   - Prefer Z (front/back) unless X is meaningfully more dominant than Z.
+    //   - This is deterministic (depends only on current dx/dz), not historical.
+    const REL_DEADZONE = 0.08; // 8% dominance required to switch to X
     let best;
-    if (az + EPS >= ax) {
+    if (az >= ax * (1 - REL_DEADZONE)) {
       best = dz >= 0 ? "front" : "back";
     } else {
       best = dx >= 0 ? "right" : "left";
     }
-
     if (bestRef.current !== best) {
       bestRef.current = best;
       setHiddenWall(best);
