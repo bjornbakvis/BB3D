@@ -588,26 +588,16 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity }) {
   // Update hidden wall dynamically while the camera rotates (dollhouse view)
   useFrame(() => {
     centerRef.current.set(0, wallH / 2, 0);
-    camDirRef.current.subVectors(camera.position, centerRef.current);
+    camDirRef.current.subVectors(camera.position, centerRef.current).normalize();
 
-    // Deterministic hidden-wall selection:
-    // Use camera direction buckets (X/Z dominance) instead of dot-product winner per-frame.
-    // This prevents flip-flopping near tie-boundaries due to float drift / OrbitControls damping.
-    const dx = camDirRef.current.x;
-    const dz = camDirRef.current.z;
+    let best = candidates[0].key;
+    let bestDot = -Infinity;
 
-    const ax = Math.abs(dx);
-    const az = Math.abs(dz);
-    const EPS = 1e-6;
-
-    // Default: keep current winner (stable at exact diagonals / ties)
-    let best = bestRef.current;
-
-    if (Math.abs(ax - az) > EPS) {
-      if (az > ax) {
-        best = dz >= 0 ? "front" : "back";
-      } else {
-        best = dx >= 0 ? "right" : "left";
+    for (const c of candidates) {
+      const d = camDirRef.current.dot(c.normal);
+      if (d > bestDot) {
+        bestDot = d;
+        best = c.key;
       }
     }
 
