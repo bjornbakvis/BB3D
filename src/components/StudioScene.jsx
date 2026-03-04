@@ -564,7 +564,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction, controlsKey }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -626,7 +626,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
       c.removeEventListener("change", onChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlsRef, wallH]);
+  }, [controlsRef, wallH, controlsKey]);
 
   // Suppress updates briefly when a programmatic camera action runs (reset/top/front/iso).
   useEffect(() => {
@@ -741,14 +741,19 @@ function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
 }
 
 
-function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction }) {
+function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction, controlsKey, bumpControlsKey }) {
   const { camera } = useThree();
   const lastNonceRef = useRef(null);
 
+  // We include controlsKey in the token so that when OrbitControls is remounted during Reset,
+  // this effect runs again for the same cameraAction nonce (second phase).
+  const remountDoneRef = useRef(null);
+
   useEffect(() => {
     if (!cameraAction || !cameraAction.nonce) return;
-    if (lastNonceRef.current === cameraAction.nonce) return;
-    lastNonceRef.current = cameraAction.nonce;
+    const token = `${cameraAction.nonce}:${controlsKey}`;
+    if (lastNonceRef.current === token) return;
+    lastNonceRef.current = token;
 
     const c = controlsRef.current;
     const base = Math.max(roomW, roomD);
@@ -782,28 +787,40 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
     // Reset = exact dezelfde default view als bij template-load (Canvas camera.position).
     // Dit verandert de default niet; het hergebruikt exact dezelfde formule.
     if (type === "reset") {
-      // Reset = EXACT terug naar de template-default view.
-      // We gebruiken OrbitControls.saveState()/reset() zodat er geen drift is (damping/velocity),
-      // en zodat het altijd pixel-identiek is aan de initiële template view.
-      if (c && typeof c.reset === "function") {
-        try {
-          camera.up.set(0, 1, 0);
-          c.reset();
-          c.update();
-          return;
-        } catch {
-          // fall through to hard-set view
-        }
+      // STRUCTURAL FIX:
+      // If Reset is clicked immediately after rotating, OrbitControls may still have tiny residual motion
+      // (internal deltas). Those deltas are not directly accessible, so we remount OrbitControls ONCE
+      // for this reset action. Remounting clears that internal motion deterministically.
+      if (c && remountDoneRef.current !== cameraAction.nonce) {
+        remountDoneRef.current = cameraAction.nonce;
+        if (typeof bumpControlsKey === "function") bumpControlsKey();
+        return;
       }
 
+      // After remount (or if controls not available), set the authoritative default view explicitly.
       const defaultPos = [
         Math.max(4, roomW * 1.2),
         Math.max(3.2, wallH * 1.25 + 1),
         Math.max(4, roomD * 1.2),
       ];
-      setView(defaultPos, [0, 0, 0]);
+
+      camera.up.set(0, 1, 0);
+
+      if (c) {
+        c.target.set(0, 0, 0);
+      }
+      camera.position.set(defaultPos[0], defaultPos[1], defaultPos[2]);
+      camera.lookAt(0, 0, 0);
+
+      if (c) {
+        c.update();
+        // Make subsequent resets truly idempotent.
+        if (typeof c.saveState === "function") c.saveState();
+      }
+
       return;
     }
+
 
     // Presets: behoud zo veel mogelijk je huidige zoom (distance), zodat er niet "random" in/uit gezoomd wordt.
     if (type === "iso" || type === "top" || type === "front") {
@@ -864,7 +881,7 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       setView([pos.x, pos.y, pos.z], [tx, ty, tz]);
       return;
     }
-  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH]);
+  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH, controlsKey, bumpControlsKey]);
 
   return null;
 }
@@ -973,6 +990,12 @@ export default function StudioScene({
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
+
+  // OrbitControls can keep tiny residual motion (internal deltas) right after user rotation.
+  // To make Reset truly idempotent even when clicked immediately after rotating,
+  // we remount OrbitControls on reset. This clears internal motion state deterministically.
+  const [controlsKey, setControlsKey] = useState(0);
+  const bumpControlsKey = () => setControlsKey((k) => k + 1);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
 
   const floorTex = useMemo(() => {
@@ -1019,7 +1042,7 @@ export default function StudioScene({
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
                 <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
-        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
+        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} controlsKey={controlsKey} bumpControlsKey={bumpControlsKey} />
 <directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
@@ -1070,7 +1093,7 @@ export default function StudioScene({
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} controlsKey={controlsKey} />
 
 
         {/* Blocks */}
@@ -1093,6 +1116,7 @@ export default function StudioScene({
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
         <OrbitControls
+          key={controlsKey}
           ref={controlsRef}
           makeDefault
           enabled={!draggingId}
