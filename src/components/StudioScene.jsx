@@ -788,9 +788,17 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       if (c && typeof c.reset === "function") {
         try {
           camera.up.set(0, 1, 0);
-          c.reset();
-          c.update();
-          return;
+          // Optie A: maak reset "hard" en deterministisch door damping tijdelijk uit te zetten.
+          // Dit voorkomt een mini-"settle"/verspringing bij een tweede reset direct achter elkaar.
+          const _prevEnableDamping = !!c.enableDamping;
+          try {
+            c.enableDamping = false;
+            c.reset();
+            c.update();
+            return;
+          } finally {
+            c.enableDamping = _prevEnableDamping;
+          }
         } catch {
           // fall through to hard-set view
         }
