@@ -60,7 +60,7 @@ export default function Home() {
           <div className="relative">
             <Pill>
               <Sparkles size={14} />
-              <span>BB3D Studio • 2026 basis</span>
+              <span>BB3D Studio • 3D Studio live</span>
             </Pill>
 
             <h1 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight text-black md:text-5xl">
@@ -69,19 +69,18 @@ export default function Home() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-black/60 md:text-base">
-              Dit project wordt een slimme 3D ontwerpstudio voor bedrijven die snel en mooi willen ontwerpen,
-              presenteren en opslaan. Vandaag staat de basis live: home, studio-route en login-structuur.
+              BB3D Studio is een professionele 3D configurator voor niche bedrijven (badkamer • toilet • tuin). De 3D Studio is live: je kunt onderdelen plaatsen, verplaatsen en verwijderen met snappen, collision en templates.
             </p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <ButtonPrimary to="/studio">
                 Start ontwerp <ArrowRight size={16} />
               </ButtonPrimary>
-              <ButtonGhost to="/login">Login (placeholder)</ButtonGhost>
+              <ButtonGhost to="/login">Login</ButtonGhost>
             </div>
 
             <div className="mt-5 text-xs text-black/45">
-              Volgende stap: Studio scherm indeling (tools • canvas • eigenschappen) + daarna echte login.
+              Volgende stappen: rotatie-UX + maatvoering/metingen + opslaan/delen. Accounts/login volgt daarna.
             </div>
           </div>
         </div>
@@ -91,41 +90,41 @@ export default function Home() {
       <section className="mx-auto w-full max-w-6xl px-4 py-10">
         <div className="mb-4 flex items-end justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-black/80">Wat staat er op de planning?</div>
-            <div className="mt-1 text-sm text-black/55">Kleine stappen, steeds iets dat echt zichtbaar werkt.</div>
+            <div className="text-sm font-semibold text-black/80">Waar staan we nu & wat komt eraan?</div>
+            <div className="mt-1 text-sm text-black/55">Stability-first: elke stap moet voorspelbaar en professioneel aanvoelen.</div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card
             icon={<ShieldCheck size={18} />}
-            title="Login wordt verplicht"
-            text="Straks moet je eerst inloggen voordat je ontwerpen kunt maken of bekijken. Veilig per klant."
+            title="3D Studio is live"
+            text="Plaatsen, slepen en verwijderen van onderdelen in 3D. Direct bruikbaar om layouts te maken en te testen."
           />
           <Card
             icon={<Layers size={18} />}
-            title="Onderdelen & lagen"
-            text="Alles als blokken/onderdelen: wanden, tegels, meubels, planten. Later ook materialen."
+            title="Snappen & collision"
+            text="Snappen naar muren en objecten, clamp binnen de ruimte en collision prevention voor realistische plaatsing."
           />
           <Card
             icon={<Ruler size={18} />}
-            title="Maatvoering"
-            text="Grid, meten, uitlijnen en ‘snappen’ zodat ontwerpen netjes en realistisch worden."
+            title="Templates (badkamer/toilet/tuin)"
+            text="Start vanuit een template en pas aan. De basis flows werken al; we bouwen dit stap voor stap verder uit."
           />
           <Card
             icon={<Wand2 size={18} />}
-            title="Templates"
-            text="Start snel met slimme standaard layouts (badkamer/toilet/tuin), daarna aanpassen."
+            title="Maatvoering & overlays"
+            text="Volgende grote stap: meten, maatlijnen en uitlijnen zodat ontwerpen echt ‘planner-grade’ worden."
           />
           <Card
             icon={<Sparkles size={18} />}
-            title="Presentatie modus"
-            text="Straks 3D weergave met mooie belichting, zodat je het direct aan klanten kunt tonen."
+            title="Accounts & toegang"
+            text="Login en rechten komen later (na de core UX). Eerst zorgen we dat de studio zelf echt professioneel aanvoelt."
           />
           <Card
             icon={<ArrowRight size={18} />}
-            title="Opslaan & delen"
-            text="Ontwerpen opslaan per klant en delen via link/export. Handig voor offertes en opvolging."
+            title="Accounts & toegang"
+            text="Login en rechten komen later (na de core UX). Eerst zorgen we dat de studio zelf echt professioneel aanvoelt."
           />
         </div>
 
@@ -133,11 +132,15 @@ export default function Home() {
         <div className="mt-8 rounded-3xl border border-black/10 bg-white p-6 text-sm text-black/60 shadow-sm">
           <div className="font-semibold text-black/80">Wat hebben we nu precies neergezet?</div>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>Werkende site op Vercel (React/Vite) ✅</li>
-            <li>Homepagina (nu gevuld en netjes) ✅</li>
+            <li>Werkende 3D Studio (React/Vite + Three.js / R3F) ✅</li>
+            <li>Onderdelen plaatsen / verplaatsen / verwijderen ✅</li>
+            <li>Snappen: object↔object en object↔wall + collision/clamp ✅</li>
+            <li>Stacking basics (o.a. countertop/sink logic) ✅</li>
+            <li>Templates: badkamer / toilet / tuin ✅</li>
+            <li>Camera views + reset ✅</li>
+            <li>WebGL fallback (geen white screens bij disabled WebGL) ✅</li>
             <li>Routes: Home / Studio / Login ✅</li>
-            <li>Voorbereiding: Studio straks achter echte login ✅</li>
-          </ul>
+</ul>
         </div>
       </section>
     </main>
