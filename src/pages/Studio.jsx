@@ -25,6 +25,13 @@ export default function Studio() {
   }), []);
 
   const [templateId, setTemplateId] = useState("badkamer");
+
+
+// Surface materials (PBR-ready). Defaults keep current look until you choose a PBR option AND add textures in /public/textures.
+const [floorMaterialId, setFloorMaterialId] = useState("default");
+const [wallMaterialId, setWallMaterialId] = useState("default");
+const [groundMaterialId, setGroundMaterialId] = useState("default");
+
   const [roomW, setRoomW] = useState(TEMPLATES.badkamer.roomW);
   const [roomD, setRoomD] = useState(TEMPLATES.badkamer.roomD);
   const [wallH, setWallH] = useState(TEMPLATES.badkamer.wallH);
@@ -1060,6 +1067,9 @@ objects={objects}
                 roomD={roomD}
                 wallH={wallH}
                 showWalls={showWalls}
+                floorMaterialId={floorMaterialId}
+                wallMaterialId={wallMaterialId}
+                groundMaterialId={groundMaterialId}
               />
             </div>
           </section>
@@ -1141,7 +1151,62 @@ objects={objects}
               </div>
             ) : (
               <div className="mt-3 grid gap-3">
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                <div 
+{/* Materialen (surfaces) */}
+<div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+  <div className="text-lg font-semibold">Materialen</div>
+  <div className="mt-1 text-sm text-black/60">
+    Voor écht realistische tegels/gras: voeg PBR textures toe in <code>/public/textures</code> en kies een optie met <b>(PBR)</b>.
+    Als de bestanden ontbreken blijft de huidige (simpele) look actief.
+  </div>
+
+  <div className="mt-4 grid gap-3">
+    <div>
+      <div className="text-sm font-medium">Vloer</div>
+      <select
+        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+        value={floorMaterialId}
+        onChange={(e) => setFloorMaterialId(e.target.value)}
+      >
+        <option value="default">Huidig (simpel)</option>
+        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+        <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
+        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+      </select>
+    </div>
+
+    <div>
+      <div className="text-sm font-medium">Wanden</div>
+      <select
+        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+        value={wallMaterialId}
+        onChange={(e) => setWallMaterialId(e.target.value)}
+      >
+        <option value="default">Huidig (simpel)</option>
+        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+        <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
+        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+      </select>
+    </div>
+
+    {templateId === "garden" && (
+      <div>
+        <div className="text-sm font-medium">Tuin: grond</div>
+        <select
+          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+          value={groundMaterialId}
+          onChange={(e) => setGroundMaterialId(e.target.value)}
+        >
+          <option value="default">Huidig (simpel)</option>
+          <option value="pbr_grass">Gras (PBR)</option>
+          <option value="pbr_paving">Terrastegel / bestrating (PBR)</option>
+        </select>
+      </div>
+    )}
+  </div>
+</div>
+
+className="rounded-2xl border border-black/10 bg-white p-4">
                   <div className="text-xs text-black/50">Geselecteerd</div>
                   <div className="mt-1 text-sm font-semibold text-black/80">
                     {selectedObj.type} • {selectedObj.id}
