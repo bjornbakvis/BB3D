@@ -993,7 +993,7 @@ export default function StudioScene({
   templateId = "bathroom",
   cameraAction = null,
 }) {
-  const __webglInitial = useMe
+  const __webglInitial = useMemo(() => isWebGLAvailable(), []);
   // To prevent a visible 1-frame "wrong hidden wall" right after Reset (especially with OrbitControls remount),
   // precompute the expected hidden wall for the Reset default view and pass it down so Room can initialize correctly.
   const forcedHiddenWall = useMemo(() => {
