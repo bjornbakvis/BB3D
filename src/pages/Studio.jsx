@@ -40,6 +40,12 @@ export default function Studio() {
     // tuin
     grass: { label: "Gras" },
     paving: { label: "Terrastegel / bestrating" },
+    // echte PBR (vereist textures in /public/textures)
+    pbr_tile_white_gloss: { label: "Wandtegel – glanzend wit (PBR)" },
+    pbr_tile_grey_matte: { label: "Tegel – mat grijs (PBR)" },
+    pbr_marble_gloss: { label: "Marmer – glanzend (PBR)" },
+    pbr_grass: { label: "Gras (PBR)" },
+    pbr_paving: { label: "Terrastegel / bestrating (PBR)" },
   }), []);
 
   const [wallMaterialId, setWallMaterialId] = useState("tile_gloss_white");
@@ -1176,8 +1182,8 @@ objects={objects}
                     className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
                   >
                     {(templateId === "tuin"
-                      ? ["grass", "paving"]
-                      : ["tile_matte_grey", "tile_gloss_white", "tile_marble_gloss"]
+                      ? ["pbr_grass", "pbr_paving", "grass", "paving"]
+                      : ["pbr_tile_grey_matte", "pbr_tile_white_gloss", "pbr_marble_gloss", "tile_matte_grey", "tile_gloss_white", "tile_marble_gloss"]
                     ).map((id) => (
                       <option key={id} value={id}>
                         {MATERIALS[id]?.label || id}
@@ -1207,8 +1213,7 @@ objects={objects}
                 )}
 
                 <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-                  Tip: dit zijn procedural PBR-materialen (map + roughness/normal). Ze blijven lichtgewicht en herhaalbaar.
-                </div>
+                  Tip: voor écht realistische tegels/gras: zet PBR-textures in <code>/public/textures</code> (albedo + normal + roughness). Kies dan een optie met <b>(PBR)</b>. Als de bestanden ontbreken valt het automatisch terug op de simpele variant.</div>
               </div>
             </div>
 
