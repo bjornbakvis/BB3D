@@ -1240,12 +1240,14 @@ objects={objects}
     </div>
   )}
 </div>
->Geselecteerd</div>
-                  <div className="mt-1 text-sm font-semibold text-black/80">
-                    {selectedObj.type} • {selectedObj.id}
-                  </div>
-                </div>
+{selectedObj ? (
+  <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+    <div className="text-lg font-semibold">Geselecteerd</div>
+    <div className="mt-1 text-sm font-semibold text-black/80">
+      {selectedObj.type} • {selectedObj.id}
+    </div>
 
+    <div className="mt-3 grid gap-3">
                 <LabeledNumber
                   label="Breedte (w)"
                   value={selectedObj.w}
@@ -1291,16 +1293,13 @@ objects={objects}
                     <option value="Black">Black</option>
                   </select>
                 </div>
-
-                <div className="rounded-2xl border border-black/10 bg-black/5 p-4 text-xs text-black/60">
-                  <div className="font-semibold text-black/75">Volgende stap</div>
-                  <div className="mt-1">
-                    Dit werkvlak wordt straks een echte 3D scene. De objecten die je nu “plaatst”, gaan we dan
-                    echt als 3D blokken tekenen.
-                  </div>
-                </div>
-              </div>
-            )}
+    </div>
+  </div>
+) : (
+  <div className="rounded-2xl border border-black/10 bg-white p-4 text-sm text-black/60 shadow-sm">
+    Klik op een object om eigenschappen te zien.
+  </div>
+)}
           </aside>
         </div>
       </div>
