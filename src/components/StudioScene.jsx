@@ -749,7 +749,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -851,8 +851,11 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
   const wallMat = (
     <meshStandardMaterial
       map={wallMap}
+      normalMap={wallNormalMap || null}
+      roughnessMap={wallRoughnessMap || null}
+      normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
       color="#ffffff"
-      roughness={0.92}
+      roughness={wallRoughnessMap ? 0.9 : 0.92}
       metalness={0}
       transparent={wallOpacity < 1}
       opacity={wallOpacity}
@@ -1164,6 +1167,8 @@ export default function StudioScene({
   const controlsRef = useRef(null);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
 
+  const isGardenTemplate = templateId === "tuin" || templateId === "garden";
+
 
 // Surface material repeats (meters -> repeat count)
 const floorRepeatX = useMemo(() => {
@@ -1236,6 +1241,13 @@ const realGround = useRealPBRSet(groundMaterialId, groundRepeatX, groundRepeatZ)
     };
   }, [wallTex]);
 
+
+const wallMapToUse = realWall.ready ? realWall.map : wallTex;
+const wallNormalToUse = realWall.ready ? realWall.normalMap : null;
+const wallRoughToUse = realWall.ready ? realWall.roughnessMap : null;
+const wallNormalScaleToUse = realWall.ready ? realWall.normalScale : 0.7;
+
+
   if (!__webglOk) {
     return (
       <div className="relative h-full w-full">
@@ -1265,12 +1277,12 @@ const realGround = useRealPBRSet(groundMaterialId, groundRepeatX, groundRepeatZ)
         <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
           <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
           <meshStandardMaterial
-            map={(templateId === "garden" && realGround.ready) ? realGround.map : (realFloor.ready ? realFloor.map : floorTex)}
-            normalMap={(templateId === "garden" && realGround.ready) ? realGround.normalMap : (realFloor.ready ? realFloor.normalMap : null)}
-            roughnessMap={(templateId === "garden" && realGround.ready) ? realGround.roughnessMap : (realFloor.ready ? realFloor.roughnessMap : null)}
-            normalScale={(templateId === "garden" && realGround.ready) ? new THREE.Vector2(realGround.normalScale, realGround.normalScale) : (realFloor.ready ? new THREE.Vector2(realFloor.normalScale, realFloor.normalScale) : undefined)}
+            map={(isGardenTemplate && realGround.ready) ? realGround.map : (realFloor.ready ? realFloor.map : floorTex)}
+            normalMap={(isGardenTemplate && realGround.ready) ? realGround.normalMap : (realFloor.ready ? realFloor.normalMap : null)}
+            roughnessMap={(isGardenTemplate && realGround.ready) ? realGround.roughnessMap : (realFloor.ready ? realFloor.roughnessMap : null)}
+            normalScale={(isGardenTemplate && realGround.ready) ? new THREE.Vector2(realGround.normalScale, realGround.normalScale) : (realFloor.ready ? new THREE.Vector2(realFloor.normalScale, realFloor.normalScale) : undefined)}
             color="#ffffff"
-            roughness={(templateId === "garden" && realGround.ready) ? 0.95 : (realFloor.ready ? 0.9 : 0.95)}
+            roughness={(isGardenTemplate && realGround.ready) ? 0.95 : (realFloor.ready ? 0.9 : 0.95)}
             metalness={0}
           />
         </mesh>
@@ -1310,7 +1322,7 @@ const realGround = useRealPBRSet(groundMaterialId, groundRepeatX, groundRepeatZ)
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
