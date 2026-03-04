@@ -1151,9 +1151,8 @@ objects={objects}
               </div>
             ) : (
               <div className="mt-3 grid gap-3">
-                <div 
-{/* Materialen (surfaces) */}
-<div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                {/* Materialen (surfaces) */}
+                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
   <div className="text-lg font-semibold">Materialen</div>
   <div className="mt-1 text-sm text-black/60">
     Voor écht realistische tegels/gras: voeg PBR textures toe in <code>/public/textures</code> en kies een optie met <b>(PBR)</b>.
@@ -1206,7 +1205,7 @@ objects={objects}
   </div>
 </div>
 
-className="rounded-2xl border border-black/10 bg-white p-4">
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
                   <div className="text-xs text-black/50">Geselecteerd</div>
                   <div className="mt-1 text-sm font-semibold text-black/80">
                     {selectedObj.type} • {selectedObj.id}
