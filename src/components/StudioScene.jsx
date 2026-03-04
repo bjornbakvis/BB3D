@@ -199,6 +199,35 @@ const REAL_PBR_PRESETS = {
     tileSizeM: 0.60,
     normalScale: 0.8,
   },
+
+// Garden boundaries (terrain separation) - add your own CC0 textures here
+pbr_boundary_fence_wood: {
+  label: "Schutting hout (PBR)",
+  paths: {
+    albedo: "/textures/garden/boundary/fence_wood/albedo.jpg",
+    normal: "/textures/garden/boundary/fence_wood/normal.jpg",
+    roughness: "/textures/garden/boundary/fence_wood/roughness.jpg",
+  },
+  tileSizeM: 1.0,
+},
+pbr_boundary_hedge: {
+  label: "Haag / begroeiing (PBR)",
+  paths: {
+    albedo: "/textures/garden/boundary/hedge/albedo.jpg",
+    normal: "/textures/garden/boundary/hedge/normal.jpg",
+    roughness: "/textures/garden/boundary/hedge/roughness.jpg",
+  },
+  tileSizeM: 1.0,
+},
+pbr_boundary_concrete: {
+  label: "Muur / beton (PBR)",
+  paths: {
+    albedo: "/textures/garden/boundary/concrete/albedo.jpg",
+    normal: "/textures/garden/boundary/concrete/normal.jpg",
+    roughness: "/textures/garden/boundary/concrete/roughness.jpg",
+  },
+  tileSizeM: 1.0,
+},
 };
 
 // Cache textures across component lifetimes (avoid reload spam)
@@ -1158,6 +1187,7 @@ export default function StudioScene({
   floorMaterialId = "default",
   wallMaterialId = "default",
   groundMaterialId = "default",
+  boundaryMaterialId = "default",
 }) {
   const __webglInitial = useMemo(() => isWebGLAvailable(), []);
   const [__webglOk, set__webglOk] = useState(__webglInitial);
@@ -1170,46 +1200,52 @@ export default function StudioScene({
   const isGardenTemplate = templateId === "tuin" || templateId === "garden";
 
 
+const effectiveFloorMaterialId = isGardenTemplate ? "default" : floorMaterialId;
+// In garden, wall dropdown is replaced by terrain boundary dropdown
+const effectiveWallMaterialId = isGardenTemplate ? boundaryMaterialId : wallMaterialId;
+const effectiveGroundMaterialId = isGardenTemplate ? groundMaterialId : "default";
+
+
 // Surface material repeats (meters -> repeat count)
 const floorRepeatX = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[floorMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveFloorMaterialId];
   const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
   return Math.max(1, roomW / tileSize);
-}, [floorMaterialId, theme, roomW]);
+}, [effectiveFloorMaterialId, theme, roomW]);
 
 const floorRepeatZ = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[floorMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveFloorMaterialId];
   const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
   return Math.max(1, roomD / tileSize);
-}, [floorMaterialId, theme, roomD]);
+}, [effectiveFloorMaterialId, theme, roomD]);
 
 const wallRepeatX = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[wallMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
   const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
   return Math.max(1, roomW / tileSize);
-}, [wallMaterialId, theme, roomW]);
+}, [effectiveWallMaterialId, theme, roomW]);
 
 const wallRepeatY = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[wallMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
   const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
   return Math.max(1, wallH / tileSize);
 }, [wallMaterialId, theme, wallH]);
 
 const groundRepeatX = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[groundMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveGroundMaterialId];
   const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
   return Math.max(1, roomW / tileSize);
-}, [groundMaterialId, theme, roomW]);
+}, [effectiveGroundMaterialId, theme, roomW]);
 
 const groundRepeatZ = useMemo(() => {
-  const preset = REAL_PBR_PRESETS[groundMaterialId];
+  const preset = REAL_PBR_PRESETS[effectiveGroundMaterialId];
   const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
   return Math.max(1, roomD / tileSize);
-}, [groundMaterialId, theme, roomD]);
+}, [effectiveGroundMaterialId, theme, roomD]);
 
-const realFloor = useRealPBRSet(floorMaterialId, floorRepeatX, floorRepeatZ);
-const realWall = useRealPBRSet(wallMaterialId, wallRepeatX, wallRepeatY);
-const realGround = useRealPBRSet(groundMaterialId, groundRepeatX, groundRepeatZ);
+const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRepeatZ);
+const realWall = useRealPBRSet(effectiveWallMaterialId, wallRepeatX, wallRepeatY);
+const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
 
   const floorTex = useMemo(() => {
