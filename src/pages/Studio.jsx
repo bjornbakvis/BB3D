@@ -31,6 +31,7 @@ export default function Studio() {
 const [floorMaterialId, setFloorMaterialId] = useState("default");
 const [wallMaterialId, setWallMaterialId] = useState("default");
 const [groundMaterialId, setGroundMaterialId] = useState("default");
+const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
 
   const [roomW, setRoomW] = useState(TEMPLATES.badkamer.roomW);
   const [roomD, setRoomD] = useState(TEMPLATES.badkamer.roomD);
@@ -227,6 +228,24 @@ const [groundMaterialId, setGroundMaterialId] = useState("default");
     setRoomD(t.roomD);
     setWallH(t.wallH);
     setShowWalls(t.showWalls);
+
+
+// Materials: keep it predictable per template
+const isGarden = nextId === "tuin" || nextId === "garden";
+if (isGarden) {
+  // Garden uses: ground + boundary only
+  setFloorMaterialId("default");
+  setWallMaterialId("default");
+  if (groundMaterialId === "default") setGroundMaterialId("pbr_grass");
+  if (boundaryMaterialId === "default") setBoundaryMaterialId("pbr_boundary_fence_wood");
+} else {
+  // Bathroom/Toilet use: floor + walls only
+  setGroundMaterialId("default");
+  setBoundaryMaterialId("default");
+  // Keep current indoor choices (or default)
+  // (No forced overwrite here to avoid surprising changes)
+}
+
 
     // Start fresh for the new template (keeps it predictable)
     setObjects([]);
@@ -1067,9 +1086,10 @@ objects={objects}
                 roomD={roomD}
                 wallH={wallH}
                 showWalls={showWalls}
-                floorMaterialId={floorMaterialId}
-                wallMaterialId={wallMaterialId}
-                groundMaterialId={groundMaterialId}
+                floorMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : floorMaterialId}
+                wallMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : wallMaterialId}
+                groundMaterialId={(templateId === "tuin" || templateId === "garden") ? groundMaterialId : "default"}
+                boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
               />
             </div>
           </section>
@@ -1146,44 +1166,51 @@ objects={objects}
             <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
-                {/* Materialen (surfaces) */}
-                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm mt-3">
+                
+{/* Materialen (surfaces) */}
+<div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
   <div className="text-lg font-semibold">Materialen</div>
   <div className="mt-1 text-sm text-black/60">
     Voor écht realistische tegels/gras: voeg PBR textures toe in <code>/public/textures</code> en kies een optie met <b>(PBR)</b>.
     Als de bestanden ontbreken blijft de huidige (simpele) look actief.
   </div>
 
-  <div className="mt-4 grid gap-3">
-    <div>
-      <div className="text-sm font-medium">Vloer</div>
-      <select
-        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
-        value={floorMaterialId}
-        onChange={(e) => setFloorMaterialId(e.target.value)}
-      >
-        <option value="default">Huidig (simpel)</option>
-        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
-        <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
-        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
-      </select>
-    </div>
+  {/* Indoor: badkamer/toilet */}
+  {templateId !== "tuin" && templateId !== "garden" && (
+    <div className="mt-4 grid gap-3">
+      <div>
+        <div className="text-sm font-medium">Vloer</div>
+        <select
+          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+          value={floorMaterialId}
+          onChange={(e) => setFloorMaterialId(e.target.value)}
+        >
+          <option value="default">Huidig (simpel)</option>
+          <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+          <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
+          <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+        </select>
+      </div>
 
-    <div>
-      <div className="text-sm font-medium">Wanden</div>
-      <select
-        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
-        value={wallMaterialId}
-        onChange={(e) => setWallMaterialId(e.target.value)}
-      >
-        <option value="default">Huidig (simpel)</option>
-        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
-        <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
-        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
-      </select>
+      <div>
+        <div className="text-sm font-medium">Wanden</div>
+        <select
+          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+          value={wallMaterialId}
+          onChange={(e) => setWallMaterialId(e.target.value)}
+        >
+          <option value="default">Huidig (simpel)</option>
+          <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
+          <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+          <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+        </select>
+      </div>
     </div>
+  )}
 
-    {templateId === "tuin" && (
+  {/* Garden: ground + boundary (on the same spot where "Vloer" normally is) */}
+  {(templateId === "tuin" || templateId === "garden") && (
+    <div className="mt-4 grid gap-3">
       <div>
         <div className="text-sm font-medium">Tuin: grond</div>
         <select
@@ -1196,19 +1223,24 @@ objects={objects}
           <option value="pbr_paving">Terrastegel / bestrating (PBR)</option>
         </select>
       </div>
-    )}
-  </div>
+
+      <div>
+        <div className="text-sm font-medium">Terreinafscheiding</div>
+        <select
+          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+          value={boundaryMaterialId}
+          onChange={(e) => setBoundaryMaterialId(e.target.value)}
+        >
+          <option value="default">Huidig (simpel)</option>
+          <option value="pbr_boundary_fence_wood">Schutting hout (PBR)</option>
+          <option value="pbr_boundary_hedge">Haag / begroeiing (PBR)</option>
+          <option value="pbr_boundary_concrete">Muur / beton (PBR)</option>
+        </select>
+      </div>
+    </div>
+  )}
 </div>
-
-            {!selectedObj ? (
-              <div className="mt-3 rounded-2xl border border-black/10 bg-black/5 p-4 text-sm text-black/60">
-                Klik op een object om eigenschappen te zien.
-              </div>
-            ) : (
-              <div className="mt-3 grid gap-3">
-
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="text-xs text-black/50">Geselecteerd</div>
+>Geselecteerd</div>
                   <div className="mt-1 text-sm font-semibold text-black/80">
                     {selectedObj.type} • {selectedObj.id}
                   </div>
