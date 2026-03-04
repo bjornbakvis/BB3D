@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, Html, Environment } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 
 function isWebGLAvailable() {
   // Guard for SSR / non-browser environments
@@ -17,166 +17,6 @@ function isWebGLAvailable() {
     return false;
   }
 }
-
-
-/**
- * Real PBR texture sets (recommended for professional look).
- * Place CC0 texture sets under /public/textures/... so they can be loaded by URL.
- * Each set should provide at least: albedo (basecolor), normal, roughness.
- *
- * Folder example:
- * public/textures/bathroom/tile_white_gloss/
- *   albedo.jpg
- *   normal.jpg
- *   roughness.jpg
- */
-const REAL_PBR_PRESETS = {
-  // Bathroom / toilet
-  pbr_tile_white_gloss: {
-    label: "Wandtegel – glanzend wit (PBR)",
-    paths: {
-      albedo: "/textures/bathroom/tile_white_gloss/albedo.jpg",
-      normal: "/textures/bathroom/tile_white_gloss/normal.jpg",
-      roughness: "/textures/bathroom/tile_white_gloss/roughness.jpg",
-    },
-    tileSizeM: 0.60, // 60cm
-  },
-  pbr_tile_grey_matte: {
-    label: "Tegel – mat grijs (PBR)",
-    paths: {
-      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
-      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
-      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
-    },
-    tileSizeM: 0.60,
-  },
-  pbr_marble_gloss: {
-    label: "Marmer – glanzend (PBR)",
-    paths: {
-      albedo: "/textures/bathroom/marble_gloss/albedo.jpg",
-      normal: "/textures/bathroom/marble_gloss/normal.jpg",
-      roughness: "/textures/bathroom/marble_gloss/roughness.jpg",
-    },
-    tileSizeM: 0.80,
-  },
-
-  // Garden
-  pbr_grass: {
-    label: "Gras (PBR)",
-    paths: {
-      albedo: "/textures/garden/grass/albedo.jpg",
-      normal: "/textures/garden/grass/normal.jpg",
-      roughness: "/textures/garden/grass/roughness.jpg",
-    },
-    tileSizeM: 1.0,
-  },
-  pbr_paving: {
-    label: "Terrastegel / bestrating (PBR)",
-    paths: {
-      albedo: "/textures/garden/paving/albedo.jpg",
-      normal: "/textures/garden/paving/normal.jpg",
-      roughness: "/textures/garden/paving/roughness.jpg",
-    },
-    tileSizeM: 0.60,
-  },
-};
-
-// Cache textures across renders to avoid reloading
-const __realPbrCache = new Map();
-
-function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
-  if (!tex) return;
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(Math.max(1, repsX), Math.max(1, repsZ));
-  tex.anisotropy = 8;
-  if (isColorMap) tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-}
-
-/**
- * Loads a real PBR set by URL with graceful fallback (no crash if missing files).
- * Returns { ready, failed, map, normalMap, roughnessMap, roughness, metalness }.
- */
-function useRealPBRSet(materialId, roomW, roomD) {
-  const preset = REAL_PBR_PRESETS[materialId] || null;
-  const [state, setState] = useState(() => ({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null }));
-
-  useEffect(() => {
-    if (!preset) {
-      setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null });
-      return;
-    }
-
-    const cacheKey = materialId;
-    const cached = __realPbrCache.get(cacheKey);
-    if (cached && cached.map) {
-      setState({ ready: true, failed: false, map: cached.map, normalMap: cached.normalMap, roughnessMap: cached.roughnessMap });
-      return;
-    }
-
-    let cancelled = false;
-    const loader = new THREE.TextureLoader();
-
-    const out = { map: null, normalMap: null, roughnessMap: null };
-    let okCount = 0;
-    let fail = false;
-
-    const repsX = Math.max(1, roomW / preset.tileSizeM);
-    const repsZ = Math.max(1, roomD / preset.tileSizeM);
-
-    const done = () => {
-      if (cancelled) return;
-      if (fail) {
-        // Dispose any partial loads
-        try { out.map?.dispose?.(); } catch {}
-        try { out.normalMap?.dispose?.(); } catch {}
-        try { out.roughnessMap?.dispose?.(); } catch {}
-        setState({ ready: false, failed: true, map: null, normalMap: null, roughnessMap: null });
-        return;
-      }
-      __applyTexSettings(out.map, repsX, repsZ, true);
-      __applyTexSettings(out.normalMap, repsX, repsZ, false);
-      __applyTexSettings(out.roughnessMap, repsX, repsZ, false);
-
-      __realPbrCache.set(cacheKey, out);
-      setState({ ready: true, failed: false, map: out.map, normalMap: out.normalMap, roughnessMap: out.roughnessMap });
-    };
-
-    const loadOne = (key, url, isColorMap) => {
-      loader.load(
-        url,
-        (tex) => {
-          if (cancelled) {
-            try { tex.dispose?.(); } catch {}
-            return;
-          }
-          out[key] = tex;
-          okCount += 1;
-          if (okCount === 3) done();
-        },
-        undefined,
-        () => {
-          fail = true;
-          done();
-        }
-      );
-    };
-
-    setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null });
-
-    loadOne("map", preset.paths.albedo, true);
-    loadOne("normalMap", preset.paths.normal, false);
-    loadOne("roughnessMap", preset.paths.roughness, false);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [materialId, preset, roomW, roomD]);
-
-  return state;
-}
-
 
 function WebGLBlockedNotice() {
   return (
@@ -290,289 +130,8 @@ function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
   return tex;
 }
 
-// --- Procedural PBR-ish textures (stability-first, no external assets) ---
-// Goal: avoid "flat colored" look by using basecolor + normal + roughness maps.
-// These are lightweight CanvasTextures that repeat cleanly.
-
-function _makeCanvas(size) {
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  return { canvas, ctx };
-}
-
-function _clamp01(v) {
-  return Math.max(0, Math.min(1, v));
-}
-
-// Very small deterministic hash noise (no allocations)
-function _hash2(x, y, seed) {
-  // x,y are ints
-  let n = x * 374761393 + y * 668265263 + seed * 1442695041;
-  n = (n ^ (n >> 13)) * 1274126177;
-  n = n ^ (n >> 16);
-  // 0..1
-  return (n >>> 0) / 4294967295;
-}
-
-// Creates a seamless-ish value noise (tileable when period divides size)
-function _makeNoiseTexture({ size = 512, period = 64, seed = 1, contrast = 1.0 }) {
-  const { canvas, ctx } = _makeCanvas(size);
-  const img = ctx.createImageData(size, size);
-  const data = img.data;
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const gx = Math.floor((x / size) * period);
-      const gy = Math.floor((y / size) * period);
-      const r = _hash2(gx % period, gy % period, seed);
-      const v = _clamp01(0.5 + (r - 0.5) * contrast);
-      const c = Math.floor(v * 255);
-      const i = (y * size + x) * 4;
-      data[i + 0] = c;
-      data[i + 1] = c;
-      data[i + 2] = c;
-      data[i + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(img, 0, 0);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = 8;
-  tex.needsUpdate = true;
-  return tex;
-}
-
-// Create a simple tile basecolor + roughness map + normal map (derived from grout height)
-function makeTileTextureSet({
-  size = 1024,
-  tileSizePx = 160,       // tile size in pixels
-  groutPx = 6,
-  cTileA = "#f2f2f2",
-  cTileB = "#e9e9e9",
-  cGrout = "#bdbdbd",
-  gloss = 0.25,           // base roughness for tiles (lower = glossier)
-  matte = 0.75,           // base roughness for grout (higher = rougher)
-  seed = 1,
-  microNoise = 0.08,      // subtle variation inside tiles
-}) {
-  const { canvas, ctx } = _makeCanvas(size);
-
-  // Basecolor
-  ctx.fillStyle = cGrout;
-  ctx.fillRect(0, 0, size, size);
-
-  const cols = Math.ceil(size / tileSizePx);
-  const rows = Math.ceil(size / tileSizePx);
-
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const x0 = x * tileSizePx + groutPx;
-      const y0 = y * tileSizePx + groutPx;
-      const w = tileSizePx - groutPx * 2;
-      const h = tileSizePx - groutPx * 2;
-
-      const mix = _hash2(x, y, seed);
-      ctx.fillStyle = mix > 0.5 ? cTileA : cTileB;
-      ctx.fillRect(x0, y0, w, h);
-
-      // subtle "speckle" / tone variation
-      const speck = Math.floor(_hash2(x + 11, y + 7, seed + 9) * 12) + 4;
-      ctx.fillStyle = `rgba(0,0,0,${microNoise})`;
-      for (let k = 0; k < speck; k++) {
-        const rx = x0 + Math.floor(_hash2(x + k, y, seed + 3) * w);
-        const ry = y0 + Math.floor(_hash2(x, y + k, seed + 5) * h);
-        const rr = Math.floor(_hash2(x + k, y + k, seed + 7) * 2) + 1;
-        ctx.fillRect(rx, ry, rr, rr);
-      }
-    }
-  }
-
-  const baseMap = new THREE.CanvasTexture(canvas);
-  baseMap.wrapS = THREE.RepeatWrapping;
-  baseMap.wrapT = THREE.RepeatWrapping;
-  baseMap.anisotropy = 8;
-  baseMap.needsUpdate = true;
-
-  // Roughness map: grout rough, tile smooth
-  const { canvas: rCanvas, ctx: rCtx } = _makeCanvas(size);
-  rCtx.fillStyle = `rgb(${Math.floor(matte * 255)},${Math.floor(matte * 255)},${Math.floor(matte * 255)})`;
-  rCtx.fillRect(0, 0, size, size);
-
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const x0 = x * tileSizePx + groutPx;
-      const y0 = y * tileSizePx + groutPx;
-      const w = tileSizePx - groutPx * 2;
-      const h = tileSizePx - groutPx * 2;
-
-      // per-tile slight roughness variation
-      const v = _clamp01(gloss + (_hash2(x, y, seed + 21) - 0.5) * 0.06);
-      const c = Math.floor(v * 255);
-      rCtx.fillStyle = `rgb(${c},${c},${c})`;
-      rCtx.fillRect(x0, y0, w, h);
-    }
-  }
-
-  const roughMap = new THREE.CanvasTexture(rCanvas);
-  roughMap.wrapS = THREE.RepeatWrapping;
-  roughMap.wrapT = THREE.RepeatWrapping;
-  roughMap.anisotropy = 8;
-  roughMap.needsUpdate = true;
-
-  // Height map for normals: grout lines higher contrast
-  const { canvas: hCanvas, ctx: hCtx } = _makeCanvas(size);
-  // Start with mid gray (flat)
-  hCtx.fillStyle = "rgb(128,128,128)";
-  hCtx.fillRect(0, 0, size, size);
-
-  // Draw grout as darker (lower) => edges produce normal variation
-  hCtx.fillStyle = "rgb(90,90,90)";
-  hCtx.lineWidth = groutPx;
-  for (let y = 0; y <= rows; y++) {
-    const yy = y * tileSizePx;
-    hCtx.beginPath();
-    hCtx.moveTo(0, yy);
-    hCtx.lineTo(size, yy);
-    hCtx.stroke();
-  }
-  for (let x = 0; x <= cols; x++) {
-    const xx = x * tileSizePx;
-    hCtx.beginPath();
-    hCtx.moveTo(xx, 0);
-    hCtx.lineTo(xx, size);
-    hCtx.stroke();
-  }
-
-  // Convert height -> normal (very simple finite difference)
-  const hImg = hCtx.getImageData(0, 0, size, size);
-  const hData = hImg.data;
-
-  const { canvas: nCanvas, ctx: nCtx } = _makeCanvas(size);
-  const nImg = nCtx.createImageData(size, size);
-  const nData = nImg.data;
-
-  const strength = 3.0;
-  const getH = (x, y) => {
-    const xx = (x + size) % size;
-    const yy = (y + size) % size;
-    return hData[(yy * size + xx) * 4] / 255.0;
-  };
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const hl = getH(x - 1, y);
-      const hr = getH(x + 1, y);
-      const hd = getH(x, y - 1);
-      const hu = getH(x, y + 1);
-
-      const dx = (hl - hr) * strength;
-      const dy = (hd - hu) * strength;
-
-      // normal = normalize([dx, dy, 1])
-      let nx = dx, ny = dy, nz = 1.0;
-      const invLen = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
-      nx *= invLen; ny *= invLen; nz *= invLen;
-
-      const i = (y * size + x) * 4;
-      nData[i + 0] = Math.floor((nx * 0.5 + 0.5) * 255);
-      nData[i + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
-      nData[i + 2] = Math.floor((nz * 0.5 + 0.5) * 255);
-      nData[i + 3] = 255;
-    }
-  }
-
-  nCtx.putImageData(nImg, 0, 0);
-
-  const normalMap = new THREE.CanvasTexture(nCanvas);
-  normalMap.wrapS = THREE.RepeatWrapping;
-  normalMap.wrapT = THREE.RepeatWrapping;
-  normalMap.anisotropy = 8;
-  normalMap.needsUpdate = true;
-
-  return { map: baseMap, roughnessMap: roughMap, normalMap };
-}
-
-function makeGrassTextureSet({
-  size = 1024,
-  seed = 11,
-  baseA = "#3f7a45",
-  baseB = "#2f6a3a",
-}) {
-  const { canvas, ctx } = _makeCanvas(size);
-
-  // Base green
-  ctx.fillStyle = baseA;
-  ctx.fillRect(0, 0, size, size);
-
-  // Add noise blades
-  const blades = 22000;
-  for (let i = 0; i < blades; i++) {
-    const x = Math.floor(_hash2(i, i + 1, seed) * size);
-    const y = Math.floor(_hash2(i + 3, i + 7, seed + 2) * size);
-    const h = 2 + Math.floor(_hash2(i + 13, i + 17, seed + 5) * 5);
-    const w = 1;
-    ctx.fillStyle = _hash2(i, i + 9, seed + 3) > 0.5 ? baseB : baseA;
-    ctx.globalAlpha = 0.20;
-    ctx.fillRect(x, y, w, h);
-  }
-  ctx.globalAlpha = 1;
-
-  const map = new THREE.CanvasTexture(canvas);
-  map.wrapS = THREE.RepeatWrapping;
-  map.wrapT = THREE.RepeatWrapping;
-  map.anisotropy = 8;
-  map.needsUpdate = true;
-
-  // Roughness: grass is rough (high roughness)
-  const rough = _makeNoiseTexture({ size, period: 96, seed: seed + 19, contrast: 0.55 });
-  // Normal: derived from noise
-  const normal = _makeNoiseTexture({ size, period: 96, seed: seed + 31, contrast: 0.95 });
-  // Convert grayscale -> normal-ish by treating noise as height (cheap approximation)
-  // We keep it simple: reuse the noise as a pseudo-normal in shader by mapping channels.
-  // Better normals are possible, but this is stable and lightweight.
-  try {
-    // paint into canvas to build RGB normal
-    const img = rough.image; // canvas
-  } catch {}
-
-  return { map, roughnessMap: rough, normalMap: null };
-}
-
-function getProceduralSurfaceMaterialPreset(materialId) {
-  // Return a preset describing how to build textures + scalar props.
-  // Keep ids stable (used by UI dropdowns).
-  const id = String(materialId || "");
-  if (id === "tile_gloss_white") {
-    return { kind: "tile", tileSize: 0.3, gloss: 0.22, matte: 0.86, cA: "#f5f5f5", cB: "#efefef", grout: "#b8b8b8", seed: 3 };
-  }
-  if (id === "tile_matte_grey") {
-    return { kind: "tile", tileSize: 0.3, gloss: 0.55, matte: 0.92, cA: "#d9d9d9", cB: "#cfcfcf", grout: "#a9a9a9", seed: 7 };
-  }
-  if (id === "tile_marble_gloss") {
-    return { kind: "tile", tileSize: 0.6, gloss: 0.18, matte: 0.86, cA: "#f1f1f1", cB: "#e6e6e6", grout: "#b0b0b0", seed: 13 };
-  }
-  if (id === "paving") {
-    return { kind: "tile", tileSize: 0.6, gloss: 0.55, matte: 0.95, cA: "#bdbdbd", cB: "#a9a9a9", grout: "#7f7f7f", seed: 17 };
-  }
-  if (id === "grass") {
-    return { kind: "grass", tileSize: 0.5, seed: 11 };
-  }
-  // fallback: checker (theme)
-  return { kind: "checker" };
-}
-
-
-
 function getThemeConfig(templateId) {
-  // Normalize Dutch template ids used in UI
-  const raw = templateId || "bathroom";
-  const id = raw === "tuin" ? "garden" : raw === "badkamer" ? "bathroom" : raw;
-
+  const id = templateId || "bathroom";
   if (id === "garden") {
     return {
       id,
@@ -1005,7 +564,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallRoughness = 0.92, wallOpacity, controlsRef, cameraAction }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -1107,10 +666,8 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
   const wallMat = (
     <meshStandardMaterial
       map={wallMap}
-      normalMap={wallNormalMap}
-      roughnessMap={wallRoughnessMap}
       color="#ffffff"
-      roughness={wallRoughness}
+      roughness={0.92}
       metalness={0}
       transparent={wallOpacity < 1}
       opacity={wallOpacity}
@@ -1408,8 +965,6 @@ export default function StudioScene({
   wallH = 2.4,
   showWalls = true,
   templateId = "bathroom",
-  floorMaterialId = null,
-  wallMaterialId = null,
   cameraAction = null,
 }) {
   const __webglInitial = useMemo(() => isWebGLAvailable(), []);
@@ -1420,110 +975,34 @@ export default function StudioScene({
   const controlsRef = useRef(null);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
 
-  
-  // --- Surface materials (procedural, PBR-ish) ---
-  // Attempt real PBR textures first (fallback to procedural if missing)
-  const realFloor = useRealPBRSet(floorMaterialId, roomW, roomD);
-  const realWall = useRealPBRSet(wallMaterialId, roomW, roomD);
-  const floorMatSet = useMemo(() => {
-    // Real PBR (if available)
-    if (realFloor && realFloor.ready) {
-      return { kind: "real", map: realFloor.map, normalMap: realFloor.normalMap, roughnessMap: realFloor.roughnessMap, roughness: 0.9, metalness: 0 };
-    }
-    const preset = getProceduralSurfaceMaterialPreset(floorMaterialId || (theme.id === "garden" ? "grass" : "tile_matte_grey"));
-    if (preset.kind === "tile") {
-      const size = 1024;
-      const tileSizePx = Math.max(80, Math.floor((preset.tileSize / 0.3) * 160));
-      const groutPx = Math.max(4, Math.floor(tileSizePx * 0.04));
-      const set = makeTileTextureSet({
-        size,
-        tileSizePx,
-        groutPx,
-        cTileA: preset.cA,
-        cTileB: preset.cB,
-        cGrout: preset.grout,
-        gloss: preset.gloss,
-        matte: preset.matte,
-        seed: preset.seed,
-      });
-      const repsX = Math.max(1, roomW / preset.tileSize);
-      const repsZ = Math.max(1, roomD / preset.tileSize);
-      set.map.repeat.set(repsX, repsZ);
-      set.roughnessMap.repeat.set(repsX, repsZ);
-      set.normalMap.repeat.set(repsX, repsZ);
-      return { kind: "tile", ...set, roughness: preset.gloss, metalness: 0 };
-    }
-    if (preset.kind === "grass") {
-      const set = makeGrassTextureSet({ size: 1024, seed: preset.seed, baseA: theme.floor.c1, baseB: theme.floor.c2 });
-      const repsX = Math.max(1, roomW / preset.tileSize);
-      const repsZ = Math.max(1, roomD / preset.tileSize);
-      set.map.repeat.set(repsX, repsZ);
-      if (set.roughnessMap) set.roughnessMap.repeat.set(repsX, repsZ);
-      return { kind: "grass", ...set, roughness: 0.95, metalness: 0 };
-    }
-    // fallback checker (theme)
+  const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
     const repsX = Math.max(1, roomW / theme.floor.tileSize);
     const repsZ = Math.max(1, roomD / theme.floor.tileSize);
     t.repeat.set(repsX, repsZ);
-    return { kind: "checker", map: t, normalMap: null, roughnessMap: null, roughness: 0.95, metalness: 0 };
-  }, [floorMaterialId, realFloor.ready, theme, roomW, roomD]);
+    return t;
+  }, [theme, roomW, roomD]);
 
+  // Prevent texture leaks when room/theme changes (stability on long sessions)
   useEffect(() => {
     return () => {
-      try { floorMatSet?.map?.dispose?.(); } catch {}
-      try { floorMatSet?.normalMap?.dispose?.(); } catch {}
-      try { floorMatSet?.roughnessMap?.dispose?.(); } catch {}
+      try { floorTex?.dispose?.(); } catch {}
     };
-  }, [floorMatSet]);
+  }, [floorTex]);
 
-  const wallMatSet = useMemo(() => {
-    // Real PBR (if available)
-    if (realWall && realWall.ready) {
-      return { kind: "real", map: realWall.map, normalMap: realWall.normalMap, roughnessMap: realWall.roughnessMap, roughness: 0.9, metalness: 0 };
-    }
-    const preset = getProceduralSurfaceMaterialPreset(wallMaterialId || (theme.id === "garden" ? "tile_matte_grey" : "tile_gloss_white"));
-    if (preset.kind === "tile") {
-      const size = 1024;
-      const tileSizePx = Math.max(80, Math.floor((preset.tileSize / 0.3) * 160));
-      const groutPx = Math.max(4, Math.floor(tileSizePx * 0.04));
-      const set = makeTileTextureSet({
-        size,
-        tileSizePx,
-        groutPx,
-        cTileA: preset.cA,
-        cTileB: preset.cB,
-        cGrout: preset.grout,
-        gloss: preset.gloss,
-        matte: preset.matte,
-        seed: preset.seed + 101,
-      });
-      const repsX = Math.max(1, roomW / preset.tileSize);
-      const repsZ = Math.max(1, roomD / preset.tileSize);
-      set.map.repeat.set(repsX, repsZ);
-      set.roughnessMap.repeat.set(repsX, repsZ);
-      set.normalMap.repeat.set(repsX, repsZ);
-      return { kind: "tile", ...set, roughness: preset.gloss, metalness: 0 };
-    }
-    // fallback checker (theme)
+  const wallTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.wall.c1, c2: theme.wall.c2, squares: theme.wall.squares });
     const repsX = Math.max(1, roomW / theme.wall.tileSize);
     const repsZ = Math.max(1, roomD / theme.wall.tileSize);
     t.repeat.set(repsX, repsZ);
-    return { kind: "checker", map: t, normalMap: null, roughnessMap: null, roughness: 0.92, metalness: 0 };
-  }, [wallMaterialId, realWall.ready, theme, roomW, roomD]);
+    return t;
+  }, [theme, roomW, roomD]);
 
   useEffect(() => {
     return () => {
-      try { wallMatSet?.map?.dispose?.(); } catch {}
-      try { wallMatSet?.normalMap?.dispose?.(); } catch {}
-      try { wallMatSet?.roughnessMap?.dispose?.(); } catch {}
+      try { wallTex?.dispose?.(); } catch {}
     };
-  }, [wallMatSet]);
-
-  const floorTex = floorMatSet.map;
-  const wallTex = wallMatSet.map;
-
+  }, [wallTex]);
 
   if (!__webglOk) {
     return (
@@ -1553,14 +1032,7 @@ export default function StudioScene({
         {/* Visible floor (theme) */}
         <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
           <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
-          <meshStandardMaterial
-            map={floorMatSet.map}
-            normalMap={floorMatSet.normalMap}
-            roughnessMap={floorMatSet.roughnessMap}
-            color="#ffffff"
-            roughness={floorMatSet.roughness}
-            metalness={floorMatSet.metalness}
-          />
+          <meshStandardMaterial map={floorTex} color="#ffffff" roughness={0.95} metalness={0} />
         </mesh>
 
         {/* Grid vloer */}
@@ -1598,7 +1070,7 @@ export default function StudioScene({
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMatSet.map} wallNormalMap={wallMatSet.normalMap} wallRoughnessMap={wallMatSet.roughnessMap} wallRoughness={wallMatSet.roughness} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
