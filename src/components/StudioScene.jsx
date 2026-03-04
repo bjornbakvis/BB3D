@@ -790,6 +790,8 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
           camera.up.set(0, 1, 0);
           c.reset();
           c.update();
+          // Make Reset idempotent: lock the post-reset (possibly constrained) state as the new saved state.
+          if (typeof c.saveState === "function") c.saveState();
           return;
         } catch {
           // fall through to hard-set view
@@ -802,6 +804,7 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
         Math.max(4, roomD * 1.2),
       ];
       setView(defaultPos, [0, 0, 0]);
+      if (c && typeof c.saveState === "function") c.saveState();
       return;
     }
 
