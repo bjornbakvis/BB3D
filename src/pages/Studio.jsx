@@ -31,6 +31,20 @@ export default function Studio() {
   const [showWalls, setShowWalls] = useState(TEMPLATES.badkamer.showWalls);
 
 
+  // Materialen (Stap: ontwerpgevoel)
+  const MATERIALS = useMemo(() => ({
+    // badkamer/toilet
+    tile_gloss_white: { label: "Wandtegel – glanzend wit" },
+    tile_matte_grey: { label: "Tegel – mat grijs" },
+    tile_marble_gloss: { label: "Tegel – marmer (glanzend)" },
+    // tuin
+    grass: { label: "Gras" },
+    paving: { label: "Terrastegel / bestrating" },
+  }), []);
+
+  const [wallMaterialId, setWallMaterialId] = useState("tile_gloss_white");
+  const [floorMaterialId, setFloorMaterialId] = useState("tile_matte_grey");
+
   // Editor state (stap 1)
   const [tool, setTool] = useState("select"); // select | place | move | delete
   const [objects, setObjects] = useState([]);
@@ -220,6 +234,19 @@ export default function Studio() {
     setRoomD(t.roomD);
     setWallH(t.wallH);
     setShowWalls(t.showWalls);
+
+    // Material defaults per template
+    if (nextId === "tuin") {
+      setFloorMaterialId("grass");
+      setWallMaterialId("tile_matte_grey");
+    } else if (nextId === "toilet") {
+      setFloorMaterialId("tile_matte_grey");
+      setWallMaterialId("tile_gloss_white");
+    } else {
+      // badkamer / leeg / overige
+      setFloorMaterialId("tile_matte_grey");
+      setWallMaterialId("tile_gloss_white");
+    }
 
     // Start fresh for the new template (keeps it predictable)
     setObjects([]);
@@ -1060,6 +1087,8 @@ objects={objects}
                 roomD={roomD}
                 wallH={wallH}
                 showWalls={showWalls}
+                floorMaterialId={floorMaterialId}
+                wallMaterialId={wallMaterialId}
               />
             </div>
           </section>
@@ -1129,6 +1158,56 @@ objects={objects}
 
                 <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
                   Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-2xl border border-black/10 bg-white p-4">
+              <div className="text-sm font-semibold text-black/80">Materialen</div>
+              <div className="mt-2 grid gap-3">
+                <div>
+                  <div className="text-xs font-semibold text-black/70">{templateId === "tuin" ? "Grond" : "Vloer"}</div>
+                  <select
+                    value={floorMaterialId}
+                    onChange={(e) => {
+                      pushUndoSnapshot();
+                      setFloorMaterialId(e.target.value);
+                    }}
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                  >
+                    {(templateId === "tuin"
+                      ? ["grass", "paving"]
+                      : ["tile_matte_grey", "tile_gloss_white", "tile_marble_gloss"]
+                    ).map((id) => (
+                      <option key={id} value={id}>
+                        {MATERIALS[id]?.label || id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {showWalls && templateId !== "tuin" && (
+                  <div>
+                    <div className="text-xs font-semibold text-black/70">Wanden</div>
+                    <select
+                      value={wallMaterialId}
+                      onChange={(e) => {
+                        pushUndoSnapshot();
+                        setWallMaterialId(e.target.value);
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                    >
+                      {["tile_gloss_white", "tile_matte_grey", "tile_marble_gloss"].map((id) => (
+                        <option key={id} value={id}>
+                          {MATERIALS[id]?.label || id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+                  Tip: dit zijn procedural PBR-materialen (map + roughness/normal). Ze blijven lichtgewicht en herhaalbaar.
                 </div>
               </div>
             </div>
