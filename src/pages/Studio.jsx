@@ -182,6 +182,7 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
       toilet: [
         { presetKey: "toilet_toilet", label: "Toilet", type: "Toilet", w: 0.38, d: 0.7, h: 0.8, color: "", y: 0, rotY: 0 },
         { presetKey: "toilet_cabinet_40", label: "Fonteinkast 40cm", type: "Cabinet", w: 0.4, d: 0.32, h: 0.75, color: "", y: 0, rotY: 0 },
+              { presetKey: "toilet_sink_small", label: "Kleine wastafel", type: "Sink", w: 0.30, d: 0.22, h: 0.12, color: "", y: 0, rotY: 0 },
       ],
       garden: [
         { presetKey: "garden_planter", label: "Plantenbak", type: "Planter", w: 0.8, d: 0.35, h: 0.45, color: "", y: 0, rotY: 0 },
@@ -194,7 +195,24 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
   const [libraryTab, setLibraryTab] = useState("bathroom");
   const [placeItemId, setPlaceItemId] = useState("bath_cabinet_60");
 
-  const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogByTab]);
+  
+
+// Object library must match the current room (professional + predictable)
+const effectiveLibraryTab = useMemo(() => {
+  if (templateId === "badkamer") return "bathroom";
+  if (templateId === "toilet") return "toilet";
+  if (templateId === "tuin" || templateId === "garden") return "garden";
+  return "bathroom";
+}, [templateId]);
+
+useEffect(() => {
+  // Force library to the active room and pick a valid default item
+  setLibraryTab(effectiveLibraryTab);
+  const first = (catalogByTab[effectiveLibraryTab] || [])[0]?.presetKey || "";
+  if (first && placeItemId !== first) setPlaceItemId(first);
+}, [effectiveLibraryTab, catalogByTab]);
+
+const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogByTab]);
   const placePreset = useMemo(
     () => flatCatalog.find((i) => i.presetKey === placeItemId) || null,
     [flatCatalog, placeItemId]
@@ -984,15 +1002,9 @@ function handlePlaceAt(x, z) {
             {tool === "place" && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <TabButton label="Badkamer" active={libraryTab === "bathroom"} onClick={() => setLibraryTab("bathroom")} />
-                  <TabButton label="Toilet" active={libraryTab === "toilet"} onClick={() => setLibraryTab("toilet")} />
-                  <TabButton label="Tuin" active={libraryTab === "garden"} onClick={() => setLibraryTab("garden")} />
-                </div>
-
+                {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
                 <div className="mt-3 grid gap-2">
-                  {(catalogByTab[libraryTab] || []).map((it) => (
+                  {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
                     <button
                       key={it.presetKey}
                       type="button"
@@ -1011,158 +1023,6 @@ function handlePlaceAt(x, z) {
                     </button>
                   ))}
                 </div>
-
-                <div className="mt-3 rounded-2xl border border-black/10 bg-black/[0.03] p-3 text-xs text-black/70">
-                  <div className="font-semibold text-black/70">Tip</div>
-                  <div className="mt-1">Kies een object hierboven en klik in het 3D werkvlak om te plaatsen.</div>
-                </div>
-              </div>
-            )}
-
-
-            <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-              <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-              <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
-                <li>Klik op een blok om te selecteren.</li>
-                <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
-                <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
-              </ul>
-            </div>
-          </aside>
-
-          {/* CENTER: Canvas */}
-          <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-black/80">Werkvlak</div>
-                <div className="text-xs text-black/50">
-                  Tool: <span className="font-semibold text-black/70">{tool}</span> • Objecten:{" "}
-                  <span className="font-semibold text-black/70">{objects.length}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-
-
-                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("top")}>Top</button>
-
-
-                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("front")}>Front</button>
-
-
-                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("iso")}>Iso</button>
-
-
-                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selectedId} onClick={() => requestCamera("focus")}>Focus</button>
-
-
-                <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("reset")}>Reset</button>
-
-
-              </div>
-
-
-
-              <div className="text-xs text-black/45">
-
-
-                (3D komt hierna — dit is nu de “basis editor”)
-              </div>
-            </div>
-
-            <div className="mt-4 h-[520px] w-full overflow-hidden rounded-3xl border border-black/10">
-              <StudioScene
-  templateId={templateId}
-                                cameraAction={cameraAction}
-objects={objects}
-                selectedId={selectedId}
-                tool={tool}
-                onPlaceAt={handlePlaceAt}
-                onObjectClick={handleObjectClick3D}
-                onMoveStart={handleMoveStart}
-                onMove={handleMoveAt}
-                roomW={roomW}
-                roomD={roomD}
-                wallH={wallH}
-                showWalls={showWalls}
-                floorMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : floorMaterialId}
-                wallMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : wallMaterialId}
-                groundMaterialId={(templateId === "tuin" || templateId === "garden") ? groundMaterialId : "default"}
-                boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
-              />
-            </div>
-          </section>
-
-          {/* RIGHT: Properties */}
-          <aside className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="mb-4 rounded-2xl border border-black/10 bg-white p-4">
-              <div className="text-sm font-semibold text-black/80">Ruimte</div>
-              <div className="mt-2 grid gap-3">
-                <div>
-                  <div className="text-xs font-semibold text-black/70">Template</div>
-                  <select
-                    value={templateId}
-                    onChange={(e) => applyTemplate(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                  >
-                    {Object.entries(TEMPLATES).map(([key, t]) => (
-                      <option key={key} value={key}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <LabeledNumber
-                    label="Breedte (m)"
-                    value={roomW}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setRoomW(Math.max(0.5, v));
-                    }}
-                  />
-                  <LabeledNumber
-                    label="Diepte (m)"
-                    value={roomD}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setRoomD(Math.max(0.5, v));
-                    }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <LabeledNumber
-                    label="Muurhoogte (m)"
-                    value={wallH}
-                    onChange={(v) => {
-                      pushUndoSnapshot();
-                      setWallH(Math.max(0.5, v));
-                    }}
-                  />
-                  <div className="rounded-2xl border border-black/10 bg-white p-4">
-                    <div className="text-xs font-semibold text-black/70">Muren</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        pushUndoSnapshot();
-                        setShowWalls((p) => !p);
-                      }}
-                      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
-                    >
-                      {showWalls ? "Aan" : "Uit"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-                  Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
-                </div>
-              </div>
-            </div>
-
             <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
