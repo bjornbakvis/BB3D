@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, Html, Environment } from "@react-three/drei";
 
 function isWebGLAvailable() {
   // Guard for SSR / non-browser environments
@@ -129,6 +129,191 @@ function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
   tex.needsUpdate = true;
   return tex;
 }
+
+
+/**
+ * Real PBR surface materials (recommended for "IKEA planner" look)
+ *
+ * Put CC0 texture sets under /public/textures/... so they can be loaded by URL.
+ * Each set should include at least:
+ *   - albedo.jpg (basecolor)
+ *   - normal.jpg
+ *   - roughness.jpg
+ *
+ * Example:
+ * public/textures/bathroom/tile_white_gloss/albedo.jpg
+ * public/textures/bathroom/tile_white_gloss/normal.jpg
+ * public/textures/bathroom/tile_white_gloss/roughness.jpg
+ */
+const REAL_PBR_PRESETS = {
+  // Bathroom / toilet
+  pbr_tile_white_gloss: {
+    label: "Wandtegel – glanzend wit (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/tile_white_gloss/albedo.jpg",
+      normal: "/textures/bathroom/tile_white_gloss/normal.jpg",
+      roughness: "/textures/bathroom/tile_white_gloss/roughness.jpg",
+    },
+    tileSizeM: 0.60,
+    normalScale: 0.8,
+  },
+  pbr_tile_grey_matte: {
+    label: "Tegel – mat grijs (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
+      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
+      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
+    },
+    tileSizeM: 0.60,
+    normalScale: 0.7,
+  },
+  pbr_marble_gloss: {
+    label: "Marmer – glanzend (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/marble_gloss/albedo.jpg",
+      normal: "/textures/bathroom/marble_gloss/normal.jpg",
+      roughness: "/textures/bathroom/marble_gloss/roughness.jpg",
+    },
+    tileSizeM: 0.80,
+    normalScale: 0.5,
+  },
+
+  // Garden
+  pbr_grass: {
+    label: "Gras (PBR)",
+    paths: {
+      albedo: "/textures/garden/grass/albedo.jpg",
+      normal: "/textures/garden/grass/normal.jpg",
+      roughness: "/textures/garden/grass/roughness.jpg",
+    },
+    tileSizeM: 1.0,
+    normalScale: 1.0,
+  },
+  pbr_paving: {
+    label: "Terrastegel / bestrating (PBR)",
+    paths: {
+      albedo: "/textures/garden/paving/albedo.jpg",
+      normal: "/textures/garden/paving/normal.jpg",
+      roughness: "/textures/garden/paving/roughness.jpg",
+    },
+    tileSizeM: 0.60,
+    normalScale: 0.8,
+  },
+};
+
+// Cache textures across component lifetimes (avoid reload spam)
+const __realPbrCache = new Map();
+
+function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
+  if (!tex) return;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(Math.max(1, repsX), Math.max(1, repsZ));
+  tex.anisotropy = 8;
+  if (isColorMap) tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+}
+
+/**
+ * Load a PBR set via TextureLoader with graceful fallback (never crash).
+ * Returns: { ready, failed, map, normalMap, roughnessMap, normalScale }
+ */
+function useRealPBRSet(materialId, repeatW, repeatD) {
+  const preset = REAL_PBR_PRESETS[materialId] || null;
+  const [state, setState] = useState(() => ({
+    ready: false,
+    failed: false,
+    map: null,
+    normalMap: null,
+    roughnessMap: null,
+    normalScale: 0.7,
+  }));
+
+  useEffect(() => {
+    if (!preset) {
+      setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null, normalScale: 0.7 });
+      return;
+    }
+
+    const cached = __realPbrCache.get(materialId);
+    if (cached && cached.map && cached.normalMap && cached.roughnessMap) {
+      // Apply repeat settings each time (room dims can change)
+      __applyTexSettings(cached.map, repeatW, repeatD, true);
+      __applyTexSettings(cached.normalMap, repeatW, repeatD, false);
+      __applyTexSettings(cached.roughnessMap, repeatW, repeatD, false);
+
+      setState({
+        ready: true,
+        failed: false,
+        map: cached.map,
+        normalMap: cached.normalMap,
+        roughnessMap: cached.roughnessMap,
+        normalScale: cached.normalScale ?? preset.normalScale ?? 0.7,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
+
+    const out = { map: null, normalMap: null, roughnessMap: null, normalScale: preset.normalScale ?? 0.7 };
+    let ok = 0;
+    let failed = false;
+
+    const finish = () => {
+      if (cancelled) return;
+
+      if (failed || !out.map || !out.normalMap || !out.roughnessMap) {
+        // dispose partials
+        try { out.map?.dispose?.(); } catch {}
+        try { out.normalMap?.dispose?.(); } catch {}
+        try { out.roughnessMap?.dispose?.(); } catch {}
+        setState({ ready: false, failed: true, map: null, normalMap: null, roughnessMap: null, normalScale: 0.7 });
+        return;
+      }
+
+      __applyTexSettings(out.map, repeatW, repeatD, true);
+      __applyTexSettings(out.normalMap, repeatW, repeatD, false);
+      __applyTexSettings(out.roughnessMap, repeatW, repeatD, false);
+
+      __realPbrCache.set(materialId, out);
+      setState({ ready: true, failed: false, map: out.map, normalMap: out.normalMap, roughnessMap: out.roughnessMap, normalScale: out.normalScale });
+    };
+
+    const loadOne = (key, url) => {
+      loader.load(
+        url,
+        (tex) => {
+          if (cancelled) {
+            try { tex.dispose?.(); } catch {}
+            return;
+          }
+          out[key] = tex;
+          ok += 1;
+          if (ok === 3) finish();
+        },
+        undefined,
+        () => {
+          failed = true;
+          finish();
+        }
+      );
+    };
+
+    setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null, normalScale: out.normalScale });
+
+    loadOne("map", preset.paths.albedo);
+    loadOne("normalMap", preset.paths.normal);
+    loadOne("roughnessMap", preset.paths.roughness);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [materialId, preset, repeatW, repeatD]);
+
+  return state;
+}
+
 
 function getThemeConfig(templateId) {
   const id = templateId || "bathroom";
@@ -966,6 +1151,10 @@ export default function StudioScene({
   showWalls = true,
   templateId = "bathroom",
   cameraAction = null,
+  // Surface materials (optional; defaults keep current look)
+  floorMaterialId = "default",
+  wallMaterialId = "default",
+  groundMaterialId = "default",
 }) {
   const __webglInitial = useMemo(() => isWebGLAvailable(), []);
   const [__webglOk, set__webglOk] = useState(__webglInitial);
@@ -974,6 +1163,49 @@ export default function StudioScene({
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
+
+
+// Surface material repeats (meters -> repeat count)
+const floorRepeatX = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[floorMaterialId];
+  const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
+  return Math.max(1, roomW / tileSize);
+}, [floorMaterialId, theme, roomW]);
+
+const floorRepeatZ = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[floorMaterialId];
+  const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
+  return Math.max(1, roomD / tileSize);
+}, [floorMaterialId, theme, roomD]);
+
+const wallRepeatX = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[wallMaterialId];
+  const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
+  return Math.max(1, roomW / tileSize);
+}, [wallMaterialId, theme, roomW]);
+
+const wallRepeatY = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[wallMaterialId];
+  const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
+  return Math.max(1, wallH / tileSize);
+}, [wallMaterialId, theme, wallH]);
+
+const groundRepeatX = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[groundMaterialId];
+  const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
+  return Math.max(1, roomW / tileSize);
+}, [groundMaterialId, theme, roomW]);
+
+const groundRepeatZ = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[groundMaterialId];
+  const tileSize = preset?.tileSizeM || theme.floor.tileSize || 1;
+  return Math.max(1, roomD / tileSize);
+}, [groundMaterialId, theme, roomD]);
+
+const realFloor = useRealPBRSet(floorMaterialId, floorRepeatX, floorRepeatZ);
+const realWall = useRealPBRSet(wallMaterialId, wallRepeatX, wallRepeatY);
+const realGround = useRealPBRSet(groundMaterialId, groundRepeatX, groundRepeatZ);
+
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -1032,7 +1264,15 @@ export default function StudioScene({
         {/* Visible floor (theme) */}
         <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
           <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
-          <meshStandardMaterial map={floorTex} color="#ffffff" roughness={0.95} metalness={0} />
+          <meshStandardMaterial
+            map={(templateId === "garden" && realGround.ready) ? realGround.map : (realFloor.ready ? realFloor.map : floorTex)}
+            normalMap={(templateId === "garden" && realGround.ready) ? realGround.normalMap : (realFloor.ready ? realFloor.normalMap : null)}
+            roughnessMap={(templateId === "garden" && realGround.ready) ? realGround.roughnessMap : (realFloor.ready ? realFloor.roughnessMap : null)}
+            normalScale={(templateId === "garden" && realGround.ready) ? new THREE.Vector2(realGround.normalScale, realGround.normalScale) : (realFloor.ready ? new THREE.Vector2(realFloor.normalScale, realFloor.normalScale) : undefined)}
+            color="#ffffff"
+            roughness={(templateId === "garden" && realGround.ready) ? 0.95 : (realFloor.ready ? 0.9 : 0.95)}
+            metalness={0}
+          />
         </mesh>
 
         {/* Grid vloer */}
