@@ -1023,6 +1023,9 @@ function handlePlaceAt(x, z) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
             <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
