@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 
@@ -604,7 +604,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
 
   // Update hidden wall on OrbitControls changes (NOT per-frame).
   // This eliminates flip-flop caused by damping/float drift in useFrame.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const c = controlsRef?.current;
     if (!c) return;
 
@@ -629,7 +629,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
   }, [controlsRef, wallH, controlsKey]);
 
   // Suppress updates briefly when a programmatic camera action runs (reset/top/front/iso).
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!cameraAction || !cameraAction.nonce) return;
 
     // Start suppression window
