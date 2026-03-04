@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, Html, Environment } from "@react-three/drei";
 
 function isWebGLAvailable() {
   // Guard for SSR / non-browser environments
@@ -17,6 +17,166 @@ function isWebGLAvailable() {
     return false;
   }
 }
+
+
+/**
+ * Real PBR texture sets (recommended for professional look).
+ * Place CC0 texture sets under /public/textures/... so they can be loaded by URL.
+ * Each set should provide at least: albedo (basecolor), normal, roughness.
+ *
+ * Folder example:
+ * public/textures/bathroom/tile_white_gloss/
+ *   albedo.jpg
+ *   normal.jpg
+ *   roughness.jpg
+ */
+const REAL_PBR_PRESETS = {
+  // Bathroom / toilet
+  pbr_tile_white_gloss: {
+    label: "Wandtegel – glanzend wit (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/tile_white_gloss/albedo.jpg",
+      normal: "/textures/bathroom/tile_white_gloss/normal.jpg",
+      roughness: "/textures/bathroom/tile_white_gloss/roughness.jpg",
+    },
+    tileSizeM: 0.60, // 60cm
+  },
+  pbr_tile_grey_matte: {
+    label: "Tegel – mat grijs (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
+      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
+      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
+    },
+    tileSizeM: 0.60,
+  },
+  pbr_marble_gloss: {
+    label: "Marmer – glanzend (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/marble_gloss/albedo.jpg",
+      normal: "/textures/bathroom/marble_gloss/normal.jpg",
+      roughness: "/textures/bathroom/marble_gloss/roughness.jpg",
+    },
+    tileSizeM: 0.80,
+  },
+
+  // Garden
+  pbr_grass: {
+    label: "Gras (PBR)",
+    paths: {
+      albedo: "/textures/garden/grass/albedo.jpg",
+      normal: "/textures/garden/grass/normal.jpg",
+      roughness: "/textures/garden/grass/roughness.jpg",
+    },
+    tileSizeM: 1.0,
+  },
+  pbr_paving: {
+    label: "Terrastegel / bestrating (PBR)",
+    paths: {
+      albedo: "/textures/garden/paving/albedo.jpg",
+      normal: "/textures/garden/paving/normal.jpg",
+      roughness: "/textures/garden/paving/roughness.jpg",
+    },
+    tileSizeM: 0.60,
+  },
+};
+
+// Cache textures across renders to avoid reloading
+const __realPbrCache = new Map();
+
+function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
+  if (!tex) return;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(Math.max(1, repsX), Math.max(1, repsZ));
+  tex.anisotropy = 8;
+  if (isColorMap) tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+}
+
+/**
+ * Loads a real PBR set by URL with graceful fallback (no crash if missing files).
+ * Returns { ready, failed, map, normalMap, roughnessMap, roughness, metalness }.
+ */
+function useRealPBRSet(materialId, roomW, roomD) {
+  const preset = REAL_PBR_PRESETS[materialId] || null;
+  const [state, setState] = useState(() => ({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null }));
+
+  useEffect(() => {
+    if (!preset) {
+      setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null });
+      return;
+    }
+
+    const cacheKey = materialId;
+    const cached = __realPbrCache.get(cacheKey);
+    if (cached && cached.map) {
+      setState({ ready: true, failed: false, map: cached.map, normalMap: cached.normalMap, roughnessMap: cached.roughnessMap });
+      return;
+    }
+
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
+
+    const out = { map: null, normalMap: null, roughnessMap: null };
+    let okCount = 0;
+    let fail = false;
+
+    const repsX = Math.max(1, roomW / preset.tileSizeM);
+    const repsZ = Math.max(1, roomD / preset.tileSizeM);
+
+    const done = () => {
+      if (cancelled) return;
+      if (fail) {
+        // Dispose any partial loads
+        try { out.map?.dispose?.(); } catch {}
+        try { out.normalMap?.dispose?.(); } catch {}
+        try { out.roughnessMap?.dispose?.(); } catch {}
+        setState({ ready: false, failed: true, map: null, normalMap: null, roughnessMap: null });
+        return;
+      }
+      __applyTexSettings(out.map, repsX, repsZ, true);
+      __applyTexSettings(out.normalMap, repsX, repsZ, false);
+      __applyTexSettings(out.roughnessMap, repsX, repsZ, false);
+
+      __realPbrCache.set(cacheKey, out);
+      setState({ ready: true, failed: false, map: out.map, normalMap: out.normalMap, roughnessMap: out.roughnessMap });
+    };
+
+    const loadOne = (key, url, isColorMap) => {
+      loader.load(
+        url,
+        (tex) => {
+          if (cancelled) {
+            try { tex.dispose?.(); } catch {}
+            return;
+          }
+          out[key] = tex;
+          okCount += 1;
+          if (okCount === 3) done();
+        },
+        undefined,
+        () => {
+          fail = true;
+          done();
+        }
+      );
+    };
+
+    setState({ ready: false, failed: false, map: null, normalMap: null, roughnessMap: null });
+
+    loadOne("map", preset.paths.albedo, true);
+    loadOne("normalMap", preset.paths.normal, false);
+    loadOne("roughnessMap", preset.paths.roughness, false);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [materialId, preset, roomW, roomD]);
+
+  return state;
+}
+
 
 function WebGLBlockedNotice() {
   return (
@@ -1262,7 +1422,14 @@ export default function StudioScene({
 
   
   // --- Surface materials (procedural, PBR-ish) ---
+  // Attempt real PBR textures first (fallback to procedural if missing)
+  const realFloor = useRealPBRSet(floorMaterialId, roomW, roomD);
+  const realWall = useRealPBRSet(wallMaterialId, roomW, roomD);
   const floorMatSet = useMemo(() => {
+    // Real PBR (if available)
+    if (realFloor && realFloor.ready) {
+      return { kind: "real", map: realFloor.map, normalMap: realFloor.normalMap, roughnessMap: realFloor.roughnessMap, roughness: 0.9, metalness: 0 };
+    }
     const preset = getProceduralSurfaceMaterialPreset(floorMaterialId || (theme.id === "garden" ? "grass" : "tile_matte_grey"));
     if (preset.kind === "tile") {
       const size = 1024;
@@ -1300,7 +1467,7 @@ export default function StudioScene({
     const repsZ = Math.max(1, roomD / theme.floor.tileSize);
     t.repeat.set(repsX, repsZ);
     return { kind: "checker", map: t, normalMap: null, roughnessMap: null, roughness: 0.95, metalness: 0 };
-  }, [floorMaterialId, theme, roomW, roomD]);
+  }, [floorMaterialId, realFloor.ready, theme, roomW, roomD]);
 
   useEffect(() => {
     return () => {
@@ -1311,6 +1478,10 @@ export default function StudioScene({
   }, [floorMatSet]);
 
   const wallMatSet = useMemo(() => {
+    // Real PBR (if available)
+    if (realWall && realWall.ready) {
+      return { kind: "real", map: realWall.map, normalMap: realWall.normalMap, roughnessMap: realWall.roughnessMap, roughness: 0.9, metalness: 0 };
+    }
     const preset = getProceduralSurfaceMaterialPreset(wallMaterialId || (theme.id === "garden" ? "tile_matte_grey" : "tile_gloss_white"));
     if (preset.kind === "tile") {
       const size = 1024;
@@ -1340,7 +1511,7 @@ export default function StudioScene({
     const repsZ = Math.max(1, roomD / theme.wall.tileSize);
     t.repeat.set(repsX, repsZ);
     return { kind: "checker", map: t, normalMap: null, roughnessMap: null, roughness: 0.92, metalness: 0 };
-  }, [wallMaterialId, theme, roomW, roomD]);
+  }, [wallMaterialId, realWall.ready, theme, roomW, roomD]);
 
   useEffect(() => {
     return () => {
