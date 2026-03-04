@@ -107,21 +107,6 @@ function snap(v, step) {
   return Math.round(v / step) * step;
 }
 
-// Deterministic wall selection from an X/Z offset (used to avoid 1-frame "wrong wall" on reset)
-function hiddenWallFromOffset(dx, dz) {
-  const ax = Math.abs(dx);
-  const az = Math.abs(dz);
-
-  // Deadzone around the diagonal to avoid boundary jitter.
-  // X must be clearly dominant before we switch to left/right.
-  const DOM_RATIO = 1.12; // keep in sync with Room()
-
-  if (ax > az * DOM_RATIO) {
-    return dx >= 0 ? "right" : "left";
-  }
-  return dz >= 0 ? "front" : "back";
-}
-
 
 function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
   const canvas = document.createElement("canvas");
@@ -579,16 +564,15 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction, controlsKey, forcedHiddenWallKey, forcedHiddenWallNonce }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
-  const __initialHiddenWall = (cameraAction?.type === "reset" && forcedHiddenWallNonce === cameraAction?.nonce && forcedHiddenWallKey) ? forcedHiddenWallKey : "front";
-  const [hiddenWall, setHiddenWall] = useState(__initialHiddenWall);
+  const [hiddenWall, setHiddenWall] = useState("front");
 
   // IMPORTANT (stability/perf):
   // Avoid allocations and state-calls every frame. We only set state when the winner changes.
-  const bestRef = useRef(__initialHiddenWall);
+  const bestRef = useRef("front");
   const centerRef = useRef(new THREE.Vector3());
 
   // During programmatic camera moves (Reset/Top/Front/Iso), OrbitControls + damping can emit
@@ -597,12 +581,25 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
   const suppressTimerRef = useRef(null);
 
   const computeHiddenWall = () => {
+    // Use camera position relative to a stable center.
+    // This is deterministic and independent of frame timing.
     centerRef.current.set(0, wallH / 2, 0);
 
     const dx = camera.position.x - centerRef.current.x;
     const dz = camera.position.z - centerRef.current.z;
 
-    return hiddenWallFromOffset(dx, dz);
+    const ax = Math.abs(dx);
+    const az = Math.abs(dz);
+
+    // Deadzone around the diagonal to avoid boundary jitter.
+    // X must be clearly dominant before we switch to left/right.
+    const DOM_RATIO = 1.12; // 12% dominance threshold
+
+    if (ax > az * DOM_RATIO) {
+      return dx >= 0 ? "right" : "left";
+    }
+    // Default to Z axis (front/back). This keeps Reset/iso views consistent.
+    return dz >= 0 ? "front" : "back";
   };
 
   // Update hidden wall on OrbitControls changes (NOT per-frame).
@@ -613,9 +610,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
 
     const onChange = () => {
       if (suppressRef.current) return;
-      const best = (cameraAction?.type === "reset" && forcedHiddenWallNonce === cameraAction?.nonce && forcedHiddenWallKey)
-        ? forcedHiddenWallKey
-        : computeHiddenWall();
+      const best = computeHiddenWall();
       if (bestRef.current !== best) {
         bestRef.current = best;
         setHiddenWall(best);
@@ -631,7 +626,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
       c.removeEventListener("change", onChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlsRef, wallH, controlsKey]);
+  }, [controlsRef, wallH]);
 
   // Suppress updates briefly when a programmatic camera action runs (reset/top/front/iso).
   useEffect(() => {
@@ -643,9 +638,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
 
     // Immediately set a deterministic hidden wall based on the current camera pose.
     // (CameraActions runs in another component; this gives stable behavior even if order varies.)
-    const immediate = (cameraAction?.type === "reset" && forcedHiddenWallNonce === cameraAction?.nonce && forcedHiddenWallKey)
-      ? forcedHiddenWallKey
-      : computeHiddenWall();
+    const immediate = computeHiddenWall();
     if (bestRef.current !== immediate) {
       bestRef.current = immediate;
       setHiddenWall(immediate);
@@ -655,9 +648,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
       suppressRef.current = false;
 
       // Final settle compute after the programmatic move finishes.
-      const best = (cameraAction?.type === "reset" && forcedHiddenWallNonce === cameraAction?.nonce && forcedHiddenWallKey)
-        ? forcedHiddenWallKey
-        : computeHiddenWall();
+      const best = computeHiddenWall();
       if (bestRef.current !== best) {
         bestRef.current = best;
         setHiddenWall(best);
@@ -668,7 +659,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallOpacity, controlsRe
       if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraAction?.nonce, wallH, forcedHiddenWallKey, forcedHiddenWallNonce]);
+  }, [cameraAction?.nonce, wallH]);
 
   if (!showWalls) return null;
 
@@ -750,19 +741,14 @@ function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
 }
 
 
-function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction, controlsKey, bumpControlsKey }) {
+function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction }) {
   const { camera } = useThree();
   const lastNonceRef = useRef(null);
 
-  // We include controlsKey in the token so that when OrbitControls is remounted during Reset,
-  // this effect runs again for the same cameraAction nonce (second phase).
-  const remountDoneRef = useRef(null);
-
   useEffect(() => {
     if (!cameraAction || !cameraAction.nonce) return;
-    const token = `${cameraAction.nonce}:${controlsKey}`;
-    if (lastNonceRef.current === token) return;
-    lastNonceRef.current = token;
+    if (lastNonceRef.current === cameraAction.nonce) return;
+    lastNonceRef.current = cameraAction.nonce;
 
     const c = controlsRef.current;
     const base = Math.max(roomW, roomD);
@@ -796,40 +782,28 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
     // Reset = exact dezelfde default view als bij template-load (Canvas camera.position).
     // Dit verandert de default niet; het hergebruikt exact dezelfde formule.
     if (type === "reset") {
-      // STRUCTURAL FIX:
-      // If Reset is clicked immediately after rotating, OrbitControls may still have tiny residual motion
-      // (internal deltas). Those deltas are not directly accessible, so we remount OrbitControls ONCE
-      // for this reset action. Remounting clears that internal motion deterministically.
-      if (c && remountDoneRef.current !== cameraAction.nonce) {
-        remountDoneRef.current = cameraAction.nonce;
-        if (typeof bumpControlsKey === "function") bumpControlsKey();
-        return;
+      // Reset = EXACT terug naar de template-default view.
+      // We gebruiken OrbitControls.saveState()/reset() zodat er geen drift is (damping/velocity),
+      // en zodat het altijd pixel-identiek is aan de initiële template view.
+      if (c && typeof c.reset === "function") {
+        try {
+          camera.up.set(0, 1, 0);
+          c.reset();
+          c.update();
+          return;
+        } catch {
+          // fall through to hard-set view
+        }
       }
 
-      // After remount (or if controls not available), set the authoritative default view explicitly.
       const defaultPos = [
         Math.max(4, roomW * 1.2),
         Math.max(3.2, wallH * 1.25 + 1),
         Math.max(4, roomD * 1.2),
       ];
-
-      camera.up.set(0, 1, 0);
-
-      if (c) {
-        c.target.set(0, 0, 0);
-      }
-      camera.position.set(defaultPos[0], defaultPos[1], defaultPos[2]);
-      camera.lookAt(0, 0, 0);
-
-      if (c) {
-        c.update();
-        // Make subsequent resets truly idempotent.
-        if (typeof c.saveState === "function") c.saveState();
-      }
-
+      setView(defaultPos, [0, 0, 0]);
       return;
     }
-
 
     // Presets: behoud zo veel mogelijk je huidige zoom (distance), zodat er niet "random" in/uit gezoomd wordt.
     if (type === "iso" || type === "top" || type === "front") {
@@ -890,7 +864,7 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       setView([pos.x, pos.y, pos.z], [tx, ty, tz]);
       return;
     }
-  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH, controlsKey, bumpControlsKey]);
+  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH]);
 
   return null;
 }
@@ -994,31 +968,11 @@ export default function StudioScene({
   cameraAction = null,
 }) {
   const __webglInitial = useMemo(() => isWebGLAvailable(), []);
-  // To prevent a visible 1-frame "wrong hidden wall" right after Reset (especially with OrbitControls remount),
-  // precompute the expected hidden wall for the Reset default view and pass it down so Room can initialize correctly.
-  const forcedHiddenWall = useMemo(() => {
-    if (!cameraAction || !cameraAction.nonce || cameraAction.type !== "reset") return null;
-
-    const defaultPos = [
-      Math.max(4, roomW * 1.2),
-      Math.max(3.2, wallH * 1.25 + 1),
-      Math.max(4, roomD * 1.2),
-    ];
-
-    return { nonce: cameraAction.nonce, key: hiddenWallFromOffset(defaultPos[0], defaultPos[2]) };
-  }, [cameraAction?.nonce, cameraAction?.type, roomW, roomD, wallH]);
-mo(() => isWebGLAvailable(), []);
   const [__webglOk, set__webglOk] = useState(__webglInitial);
   const [draggingId, setDraggingId] = useState(null);
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
-
-  // OrbitControls can keep tiny residual motion (internal deltas) right after user rotation.
-  // To make Reset truly idempotent even when clicked immediately after rotating,
-  // we remount OrbitControls on reset. This clears internal motion state deterministically.
-  const [controlsKey, setControlsKey] = useState(0);
-  const bumpControlsKey = () => setControlsKey((k) => k + 1);
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
 
   const floorTex = useMemo(() => {
@@ -1065,7 +1019,7 @@ mo(() => isWebGLAvailable(), []);
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
                 <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
-        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} controlsKey={controlsKey} bumpControlsKey={bumpControlsKey} />
+        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
 <directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
@@ -1116,7 +1070,7 @@ mo(() => isWebGLAvailable(), []);
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} controlsKey={controlsKey} forcedHiddenWallKey={forcedHiddenWall?.key} forcedHiddenWallNonce={forcedHiddenWall?.nonce} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallTex} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
@@ -1139,7 +1093,6 @@ mo(() => isWebGLAvailable(), []);
 
         {/* Controls (disabled while dragging so the camera doesn't fight your move) */}
         <OrbitControls
-          key={controlsKey}
           ref={controlsRef}
           makeDefault
           enabled={!draggingId}
