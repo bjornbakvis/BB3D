@@ -724,6 +724,8 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
 
 
 function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
+  const { camera } = useThree();
+
   // Save the "template default" OrbitControls state so Reset can return EXACTLY to it.
   // This avoids drift from damping/velocity and guarantees pixel-identical reset.
   useEffect(() => {
@@ -733,9 +735,15 @@ function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
     try {
       c.target.set(0, 0, 0);
       c.update();
+      // Store authoritative default state for idempotent Reset.
+      c.__bbDefaultState = {
+        pos: camera.position.clone(),
+        target: c.target.clone(),
+        up: camera.up.clone(),
+      };
       c.saveState();
     } catch {}
-  }, [controlsRef, roomW, roomD, wallH]);
+  }, [controlsRef, roomW, roomD, wallH, camera]);
 
   return null;
 }
@@ -785,16 +793,21 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       // Reset = EXACT terug naar de template-default view.
       // We gebruiken OrbitControls.saveState()/reset() zodat er geen drift is (damping/velocity),
       // en zodat het altijd pixel-identiek is aan de initiële template view.
-      if (c && typeof c.reset === "function") {
+      if (c && c.__bbDefaultState) {
+        // Idempotent Reset: always return to the stored template-default camera + target.
         try {
-          camera.up.set(0, 1, 0);
-          c.reset();
+          const st = c.__bbDefaultState;
+          camera.up.copy(st.up);
+          camera.position.copy(st.pos);
+          c.target.copy(st.target);
+          camera.lookAt(st.target.x, st.target.y, st.target.z);
           c.update();
           return;
         } catch {
           // fall through to hard-set view
         }
       }
+
 
       const defaultPos = [
         Math.max(4, roomW * 1.2),
