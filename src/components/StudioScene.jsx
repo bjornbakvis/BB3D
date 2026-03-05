@@ -929,7 +929,7 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
 
     const c = controlsRef.current;
     if (c) {
-      c.target.set(0, 0, 0);
+      c.target.set(0, targetY, 0);
       c.update();
     }
   }, [camera, controlsRef, roomW, roomD, wallH]);
@@ -940,7 +940,7 @@ function CameraFramer({ controlsRef, roomW, roomD, wallH }) {
 
 
 
-function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
+function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH, targetY = 0 }) {
   // Save the "template default" OrbitControls state so Reset can return EXACTLY to it.
   // This avoids drift from damping/velocity and guarantees pixel-identical reset.
   useEffect(() => {
@@ -948,17 +948,17 @@ function ControlsDefaultStateSaver({ controlsRef, roomW, roomD, wallH }) {
     if (!c) return;
     // Ensure target is consistent with our default view
     try {
-      c.target.set(0, 0, 0);
+      c.target.set(0, targetY, 0);
       c.update();
       c.saveState();
     } catch {}
-  }, [controlsRef, roomW, roomD, wallH]);
+  }, [controlsRef, roomW, roomD, wallH, targetY]);
 
   return null;
 }
 
 
-function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction }) {
+function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, cameraAction, targetY = 0 }) {
   const { camera } = useThree();
   const lastNonceRef = useRef(null);
 
@@ -1018,33 +1018,33 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
         Math.max(3.2, wallH * 1.25 + 1),
         Math.max(4, roomD * 1.2),
       ];
-      setView(defaultPos, [0, 0, 0]);
+      setView(defaultPos, [0, targetY, 0]);
       return;
     }
 
     // Presets: behoud zo veel mogelijk je huidige zoom (distance), zodat er niet "random" in/uit gezoomd wordt.
     if (type === "iso" || type === "top" || type === "front") {
-      const target = new THREE.Vector3(0, 0, 0);
+      const target = new THREE.Vector3(0, targetY, 0);
       const dist = Math.max(3.0, Math.min(isoDist * 1.25, getCurrentDistance(target)));
 
       if (type === "iso") {
         const dir = new THREE.Vector3(1, 0.85, 1).normalize();
         const pos = target.clone().add(dir.multiplyScalar(dist));
-        setView([pos.x, pos.y, pos.z], [0, 0, 0]);
+        setView([pos.x, pos.y, pos.z], [0, targetY, 0]);
         return;
       }
 
       if (type === "top") {
         // Kleine z-offset om singulariteit te voorkomen (OrbitControls houdt hier niet van)
         const pos = target.clone().add(new THREE.Vector3(0, 1, 0).multiplyScalar(dist));
-        setView([pos.x, pos.y, pos.z + 0.001], [0, 0, 0]);
+        setView([pos.x, pos.y, pos.z + 0.001], [0, targetY, 0]);
         return;
       }
 
       if (type === "front") {
         // Front = kijk vanaf +Z richting oorsprong, met een klein beetje hoogte.
         const pos = target.clone().add(new THREE.Vector3(0, 0.18, 1).normalize().multiplyScalar(dist));
-        setView([pos.x, pos.y, pos.z], [0, 0, 0]);
+        setView([pos.x, pos.y, pos.z], [0, targetY, 0]);
         return;
       }
     }
@@ -1081,11 +1081,11 @@ function CameraActions({ controlsRef, objects, selectedId, roomW, roomD, wallH, 
       setView([pos.x, pos.y, pos.z], [tx, ty, tz]);
       return;
     }
-  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH]);
+  }, [cameraAction, camera, controlsRef, objects, selectedId, roomW, roomD, wallH, targetY]);
 
   return null;
 }
-function ZoomOverlay({ controlsRef, minDistance, maxDistance }) {
+function ZoomOverlay({ controlsRef, minDistance, maxDistance, targetY = 0 }) {
   const [t, setT] = useState(0.35); // 0..1
   const rafLock = useRef(false);
 
@@ -1117,7 +1117,7 @@ function ZoomOverlay({ controlsRef, minDistance, maxDistance }) {
 
     // Zoom should happen towards the grid (target on y=0)
     const target = c.target.clone();
-    target.y = 0;
+    target.y = targetY;
     c.target.copy(target);
 
     const dir = new THREE.Vector3().subVectors(c.object.position, c.target).normalize();
@@ -1198,6 +1198,11 @@ export default function StudioScene({
   const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
 
   const isGardenTemplate = templateId === "tuin" || templateId === "garden";
+
+  // Camera target: indoor rooms look better when we orbit around the room center (wallH/2).
+  // Garden/empty stays at y=0.
+  const controlsTargetY = (!isGardenTemplate && showWalls) ? (wallH / 2) : 0;
+
 
 
 const effectiveFloorMaterialId = isGardenTemplate ? "default" : floorMaterialId;
@@ -1301,8 +1306,8 @@ return (
 
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
-                <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
-        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} />
+                <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} targetY={controlsTargetY} />
+        <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} targetY={controlsTargetY} />
 <directionalLight
           position={[6, 10, 4]}
           intensity={theme.light.sun}
@@ -1397,7 +1402,7 @@ return (
           maxDistance={Math.max(10, roomW + roomD)}
           minPolarAngle={0.2}
           maxPolarAngle={Math.PI / 2 - 0.1}
-          target={[0, 0, 0]}
+          target={[0, controlsTargetY, 0]}
         />
 
         </Canvas>
@@ -1406,7 +1411,7 @@ return (
 
     {/* Zoom (in card footer, not over the 3D scene) */}
     <div className="pointer-events-none flex h-14 items-end justify-end px-3 pb-3">
-      <ZoomOverlay controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
+      <ZoomOverlay controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} targetY={controlsTargetY} />
     </div>
   </div>
 );
