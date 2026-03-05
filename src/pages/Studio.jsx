@@ -1148,25 +1148,42 @@ function handlePlaceAt(x, z) {
     <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
     <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
   </div>
-{tool === "place" && (
-                            <div className="mt-4">
-                              <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
-                              {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
-                              <div className="mt-3 grid gap-2">
-                                {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
-                                  <button
-                                    key={it.presetKey}
-                                    type="button"
-                                    onClick={() => setPlaceItemId(it.presetKey)}
 
-<div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-                            <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-        </section>
+  {tool === "place" && (
+    <div className="mt-4">
+      <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
 
+      {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
+      <div className="mt-3 grid gap-2">
+        {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
+          <button
+            key={it.presetKey}
+            type="button"
+            onClick={() => setPlaceItemId(it.presetKey)}
+            className={
+              "w-full rounded-2xl border border-black/10 px-3 py-3 text-left text-sm shadow-sm transition " +
+              (placeItemId === it.presetKey ? "bg-black text-white" : "bg-white text-black/80 hover:bg-black/5")
+            }
+          >
+            {it.label}
+          </button>
+        ))}
+      </div>
 
+      <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+        <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
+        <ul className="mt-2 list-disc space-y-1 pl-4">
+          <li>Kies “Plaats blok”.</li>
+          <li>Kies een object in de bibliotheek.</li>
+          <li>Klik in het 3D werkvlak om te plaatsen.</li>
+        </ul>
+      </div>
+    </div>
+  )}
+</section>
         <section className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
-/* Rechts: eigenschappen + materialen + geselecteerd */}
+{/* Rechts: eigenschappen + materialen + geselecteerd */}
             <div>
               <div className="rounded-2xl border border-black/10 bg-white p-4">
                 <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
