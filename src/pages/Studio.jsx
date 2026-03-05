@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box } from "lucide-react";
+import { Box, Undo2, Redo2 } from "lucide-react";
 import StudioScene from "../components/StudioScene.jsx";
 
 function nowTime() {
@@ -1110,26 +1110,26 @@ function handlePlaceAt(x, z) {
                           type="button"
                           disabled={!canUndo}
                           className={clsx(
-                            "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                            "h-10 w-10 rounded-2xl border p-0 text-sm font-medium shadow-sm inline-flex items-center justify-center",
                             canUndo
                               ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
                               : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
                           )}
-                        >
-                          Undo
+                         title="Undo" aria-label="Undo">
+                          <Undo2 size={18} />
                         </button>
                         <button
                           onClick={redo}
                           type="button"
                           disabled={!canRedo}
                           className={clsx(
-                            "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                            "h-10 w-10 rounded-2xl border p-0 text-sm font-medium shadow-sm inline-flex items-center justify-center",
                             canRedo
                               ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
                               : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
                           )}
-                        >
-                          Redo
+                         title="Redo" aria-label="Redo">
+                          <Redo2 size={18} />
                         </button>
                       </div>
                     </div>
