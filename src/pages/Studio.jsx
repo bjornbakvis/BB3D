@@ -1319,17 +1319,13 @@ function handlePlaceAt(x, z) {
                   <div className="text-lg font-semibold">Geselecteerd</div>
                   {selectedObj && (
                     <div className="text-sm font-semibold text-black/70">
-                      {selectedObj.label || selectedObj.type}
+                      {selectedObj.type} • {selectedObj.id}
                     </div>
                   )}
                 </div>
 
                 {selectedObj ? (
                   <div className="mt-3">
-                    <div className="text-sm font-semibold text-black/80">
-                      {selectedObj.type} • {selectedObj.id}
-                    </div>
-
                     <div className="mt-3 grid gap-3">
                       <LabeledNumber label="Breedte (w)" value={selectedObj.w} onChange={(v) => updateSelected({ w: v })} />
                       <LabeledNumber label="Hoogte (h)" value={selectedObj.h} onChange={(v) => updateSelected({ h: v })} />
