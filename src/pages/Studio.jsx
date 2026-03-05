@@ -1076,6 +1076,7 @@ function handlePlaceAt(x, z) {
       <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
         Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
       </div>
+</div>
 </section>
 
         {/* Werkvlak card (breed, gecentreerd) */}
@@ -1092,7 +1093,7 @@ function handlePlaceAt(x, z) {
 
                       <div className="flex items-center gap-2" />
 
-<div className="text-xs text-black/45" />
+
 
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
