@@ -1326,34 +1326,42 @@ function handlePlaceAt(x, z) {
 
                 {selectedObj ? (
                   <div className="mt-3">
-                    <div className="mt-3 grid gap-3">
-                      <LabeledNumber label="Breedte (w)" value={selectedObj.w} onChange={(v) => updateSelected({ w: v })} />
-                      <LabeledNumber label="Hoogte (h)" value={selectedObj.h} onChange={(v) => updateSelected({ h: v })} />
-                      <LabeledNumber label="Diepte (d)" value={selectedObj.d} onChange={(v) => updateSelected({ d: v })} />
+                    
+                    <div className="grid gap-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <LabeledNumber bare label="Breedte (w)" value={selectedObj.w} onChange={(v) => updateSelected({ w: v })} />
+                        <LabeledNumber bare label="Hoogte (h)" value={selectedObj.h} onChange={(v) => updateSelected({ h: v })} />
+                      </div>
 
-                      <LabeledNumber
-                        label="Hoogte boven vloer (y)"
-                        value={selectedObj.y ?? 0}
-                        step={0.1}
-                        onChange={(v) => updateSelected({ y: Math.max(0, v) })}
-                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <LabeledNumber bare label="Diepte (d)" value={selectedObj.d} onChange={(v) => updateSelected({ d: v })} />
+                        <LabeledNumber
+                          bare
+                          label="Hoogte boven vloer (y)"
+                          value={selectedObj.y ?? 0}
+                          step={0.1}
+                          onChange={(v) => updateSelected({ y: Math.max(0, v) })}
+                        />
+                      </div>
 
-                      <LabeledNumber label="Rotatie (°)" value={selectedObj.rotY ?? 0} step={1} onChange={(v) => updateSelected({ rotY: v })} />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
+                          <select
+                            value={selectedObj.color ?? ""}
+                            onChange={(e) => updateSelected({ color: e.target.value })}
+                            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                          >
+                            <option value="">Auto (type)</option>
+                            <option value="Stone">Stone</option>
+                            <option value="Wood">Wood</option>
+                            <option value="Concrete">Concrete</option>
+                            <option value="White">White</option>
+                            <option value="Black">Black</option>
+                          </select>
+                        </div>
 
-                      <div className="rounded-2xl border border-black/10 bg-white p-4">
-                        <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
-                        <select
-                          value={selectedObj.color ?? ""}
-                          onChange={(e) => updateSelected({ color: e.target.value })}
-                          className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                        >
-                          <option value="">Auto (type)</option>
-                          <option value="Stone">Stone</option>
-                          <option value="Wood">Wood</option>
-                          <option value="Concrete">Concrete</option>
-                          <option value="White">White</option>
-                          <option value="Black">Black</option>
-                        </select>
+                        <LabeledNumber bare label="Rotatie (°)" value={selectedObj.rotY ?? 0} step={1} onChange={(v) => updateSelected({ rotY: v })} />
                       </div>
                     </div>
                   </div>
@@ -1402,7 +1410,7 @@ function TabButton({ label, active, onClick }) {
   );
 }
 
-function LabeledNumber({ label, value, onChange, step = 0.1, min = 0, compact = false }) {
+function LabeledNumber({ label, value, onChange, step = 0.1, min = 0, compact = false, bare = false }) {
   // We keep a local string so typing '.' or ',' on mobile works smoothly.
   const [raw, setRaw] = useState(String(value ?? ""));
 
@@ -1439,7 +1447,7 @@ function LabeledNumber({ label, value, onChange, step = 0.1, min = 0, compact = 
   }
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-4">
+    <div className={bare ? "" : "rounded-2xl border border-black/10 bg-white p-4"}>
       <div className="text-xs font-semibold text-black/70">{label}</div>
       <input
         type="text"
