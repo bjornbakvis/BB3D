@@ -1215,24 +1215,25 @@ function handlePlaceAt(x, z) {
           </div>
         </section>
 
-        {/* Eigenschappen (links) + Geselecteerd (rechts) */}
+        {/* Overzicht: Eigenschappen + Geselecteerd */}
         <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Links: Eigenschappen + (voor nu) Materialen */}
-            <div className="rounded-2xl border border-black/10 bg-white p-4">
-              <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
+          <div className="rounded-2xl border border-black/10 bg-white p-4">
+            <div className="text-sm font-semibold text-black/80">Overzicht</div>
 
-              {/* Materialen (surfaces) */}
-              <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-                <div className="text-lg font-semibold">Materialen</div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {/* Links: Materialen */}
+              <div className="rounded-2xl border border-black/10 bg-white p-4">
+                <div className="text-lg font-semibold">
+                  {templateId === "tuin" || templateId === "garden" ? "Tuinmaterialen" : "Materialen"}
+                </div>
 
                 {/* Indoor: badkamer/toilet */}
                 {templateId !== "tuin" && templateId !== "garden" && (
                   <div className="mt-4 grid gap-3">
-                    <div>
+                    <div className="grid grid-cols-[90px_1fr] items-center gap-3">
                       <div className="text-sm font-medium">Vloer</div>
                       <select
-                        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                         value={floorMaterialId}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1248,10 +1249,10 @@ function handlePlaceAt(x, z) {
                       </select>
                     </div>
 
-                    <div>
+                    <div className="grid grid-cols-[90px_1fr] items-center gap-3">
                       <div className="text-sm font-medium">Wanden</div>
                       <select
-                        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                         value={wallMaterialId}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1272,10 +1273,10 @@ function handlePlaceAt(x, z) {
                 {/* Garden: ground + boundary */}
                 {(templateId === "tuin" || templateId === "garden") && (
                   <div className="mt-4 grid gap-3">
-                    <div>
-                      <div className="text-sm font-medium">Tuin: grond</div>
+                    <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                      <div className="text-sm font-medium">Grond</div>
                       <select
-                        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                         value={groundMaterialId}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1290,10 +1291,10 @@ function handlePlaceAt(x, z) {
                       </select>
                     </div>
 
-                    <div>
-                      <div className="text-sm font-medium">Terreinafscheiding</div>
+                    <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+                      <div className="text-sm font-medium">Afscheiding</div>
                       <select
-                        className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                         value={boundaryMaterialId}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1311,55 +1312,55 @@ function handlePlaceAt(x, z) {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Rechts: Geselecteerd */}
-            <div className="rounded-2xl border border-black/10 bg-white p-4">
-              <div className="text-sm font-semibold text-black/80">Geselecteerd</div>
+              {/* Rechts: Geselecteerd */}
+              <div className="rounded-2xl border border-black/10 bg-white p-4">
+                <div className="text-lg font-semibold">Geselecteerd</div>
 
-              {selectedObj ? (
-                <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-                  <div className="text-lg font-semibold">Details</div>
-                  <div className="mt-1 text-sm font-semibold text-black/80">
-                    {selectedObj.type} • {selectedObj.id}
-                  </div>
+                {selectedObj ? (
+                  <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                    <div className="text-lg font-semibold">Details</div>
+                    <div className="mt-1 text-sm font-semibold text-black/80">
+                      {selectedObj.type} • {selectedObj.id}
+                    </div>
 
-                  <div className="mt-3 grid gap-3">
-                    <LabeledNumber label="Breedte (w)" value={selectedObj.w} onChange={(v) => updateSelected({ w: v })} />
-                    <LabeledNumber label="Hoogte (h)" value={selectedObj.h} onChange={(v) => updateSelected({ h: v })} />
-                    <LabeledNumber label="Diepte (d)" value={selectedObj.d} onChange={(v) => updateSelected({ d: v })} />
+                    <div className="mt-3 grid gap-3">
+                      <LabeledNumber label="Breedte (w)" value={selectedObj.w} onChange={(v) => updateSelected({ w: v })} />
+                      <LabeledNumber label="Hoogte (h)" value={selectedObj.h} onChange={(v) => updateSelected({ h: v })} />
+                      <LabeledNumber label="Diepte (d)" value={selectedObj.d} onChange={(v) => updateSelected({ d: v })} />
 
-                    <LabeledNumber
-                      label="Hoogte boven vloer (y)"
-                      value={selectedObj.y ?? 0}
-                      step={0.1}
-                      onChange={(v) => updateSelected({ y: Math.max(0, v) })}
-                    />
+                      <LabeledNumber
+                        label="Hoogte boven vloer (y)"
+                        value={selectedObj.y ?? 0}
+                        step={0.1}
+                        onChange={(v) => updateSelected({ y: Math.max(0, v) })}
+                      />
 
-                    <LabeledNumber label="Rotatie (°)" value={selectedObj.rotY ?? 0} step={1} onChange={(v) => updateSelected({ rotY: v })} />
+                      <LabeledNumber label="Rotatie (°)" value={selectedObj.rotY ?? 0} step={1} onChange={(v) => updateSelected({ rotY: v })} />
 
-                    <div className="rounded-2xl border border-black/10 bg-white p-4">
-                      <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
-                      <select
-                        value={selectedObj.color ?? ""}
-                        onChange={(e) => updateSelected({ color: e.target.value })}
-                        className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                      >
-                        <option value="">Auto (type)</option>
-                        <option value="Stone">Stone</option>
-                        <option value="Wood">Wood</option>
-                        <option value="Concrete">Concrete</option>
-                        <option value="White">White</option>
-                        <option value="Black">Black</option>
-                      </select>
+                      <div className="rounded-2xl border border-black/10 bg-white p-4">
+                        <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
+                        <select
+                          value={selectedObj.color ?? ""}
+                          onChange={(e) => updateSelected({ color: e.target.value })}
+                          className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                        >
+                          <option value="">Auto (type)</option>
+                          <option value="Stone">Stone</option>
+                          <option value="Wood">Wood</option>
+                          <option value="Concrete">Concrete</option>
+                          <option value="White">White</option>
+                          <option value="Black">Black</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 text-sm text-black/60 shadow-sm">
-                  Klik op een object om details te zien.
-                </div>
-              )}
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 text-sm text-black/60 shadow-sm">
+                    Klik op een object om details te zien.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
