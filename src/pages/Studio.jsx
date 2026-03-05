@@ -1066,14 +1066,14 @@ function handlePlaceAt(x, z) {
         pushUndoSnapshot();
         setShowWalls((p) => !p);
       }}
-      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 <div className="rounded-2xl border border-black/10 bg-white py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
+      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
     >
       {showWalls ? "Aan" : "Uit"}
     </button>
   </div>
 </div>
 
-      <div className="mt-3 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+      <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
         Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
       </div>
     </div>
