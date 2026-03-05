@@ -73,6 +73,10 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
       roomD,
       wallH,
       showWalls,
+      floorMaterialId,
+      wallMaterialId,
+      groundMaterialId,
+      boundaryMaterialId,
     });
     if (nextRedoClear) redoStackRef.current = [];
     setCanUndo(undoStackRef.current.length > 0);
@@ -91,6 +95,10 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
       roomD,
       wallH,
       showWalls,
+      floorMaterialId,
+      wallMaterialId,
+      groundMaterialId,
+      boundaryMaterialId,
     });
     setObjects(prev.objects);
     setSelectedId(prev.selectedId ?? null);
@@ -99,6 +107,10 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
     setRoomD(typeof prev.roomD === "number" ? prev.roomD : roomD);
     setWallH(typeof prev.wallH === "number" ? prev.wallH : wallH);
     setShowWalls(typeof prev.showWalls === "boolean" ? prev.showWalls : showWalls);
+setFloorMaterialId(prev.floorMaterialId ?? floorMaterialId);
+setWallMaterialId(prev.wallMaterialId ?? wallMaterialId);
+setGroundMaterialId(prev.groundMaterialId ?? groundMaterialId);
+setBoundaryMaterialId(prev.boundaryMaterialId ?? boundaryMaterialId);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(redoStackRef.current.length > 0);
   }
@@ -115,6 +127,10 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
       roomD,
       wallH,
       showWalls,
+      floorMaterialId,
+      wallMaterialId,
+      groundMaterialId,
+      boundaryMaterialId,
     });
     setObjects(nxt.objects);
     setSelectedId(nxt.selectedId ?? null);
@@ -123,6 +139,10 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
     setRoomD(typeof nxt.roomD === "number" ? nxt.roomD : roomD);
     setWallH(typeof nxt.wallH === "number" ? nxt.wallH : wallH);
     setShowWalls(typeof nxt.showWalls === "boolean" ? nxt.showWalls : showWalls);
+setFloorMaterialId(nxt.floorMaterialId ?? floorMaterialId);
+setWallMaterialId(nxt.wallMaterialId ?? wallMaterialId);
+setGroundMaterialId(nxt.groundMaterialId ?? groundMaterialId);
+setBoundaryMaterialId(nxt.boundaryMaterialId ?? boundaryMaterialId);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(redoStackRef.current.length > 0);
   }
@@ -991,65 +1011,67 @@ function handlePlaceAt(x, z) {
       <div className="mt-5 flex flex-col gap-4">
         {/* Ruimte card (net zo breed als header/undo card) */}
 <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-  <div className="rounded-2xl border border-black/10 bg-white p-4">
+  <div className={`rounded-2xl border border-black/10 bg-white ${compact ? "p-3" : "p-4"}`}>
     <div className="text-sm font-semibold text-black/80">Ruimte</div>
-    <div className="mt-2 grid gap-3">
-      <div>
-        <div className="text-xs font-semibold text-black/70">Template</div>
-        <select
-          value={templateId}
-          onChange={(e) => applyTemplate(e.target.value)}
-          className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-        >
-          {Object.entries(TEMPLATES).map(([key, t]) => (
-            <option key={key} value={key}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    
+<div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-5 md:items-end">
+  <div className="rounded-2xl border border-black/10 bg-white p-3 md:col-span-1">
+    <div className="text-xs font-semibold text-black/70">Template</div>
+    <select
+      value={templateId}
+      onChange={(e) => applyTemplate(e.target.value)}
+      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+    >
+      {Object.entries(TEMPLATES).map(([key, t]) => (
+        <option key={key} value={key}>
+          {t.label}
+        </option>
+      ))}
+    </select>
+  </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <LabeledNumber
-          label="Breedte (m)"
-          value={roomW}
-          onChange={(v) => {
-            pushUndoSnapshot();
-            setRoomW(Math.max(0.5, v));
-          }}
-        />
-        <LabeledNumber
-          label="Diepte (m)"
-          value={roomD}
-          onChange={(v) => {
-            pushUndoSnapshot();
-            setRoomD(Math.max(0.5, v));
-          }}
-        />
-      </div>
+  <LabeledNumber
+    label="Breedte (m)"
+    value={roomW}
+    onChange={(v) => {
+      pushUndoSnapshot();
+      setRoomW(Math.max(0.5, v));
+    }}
+    compact
+  />
+  <LabeledNumber
+    label="Diepte (m)"
+    value={roomD}
+    onChange={(v) => {
+      pushUndoSnapshot();
+      setRoomD(Math.max(0.5, v));
+    }}
+    compact
+  />
+  <LabeledNumber
+    label="Muurhoogte (m)"
+    value={wallH}
+    onChange={(v) => {
+      pushUndoSnapshot();
+      setWallH(Math.max(0.5, v));
+    }}
+    compact
+  />
 
-      <div className="grid grid-cols-2 gap-3">
-        <LabeledNumber
-          label="Muurhoogte (m)"
-          value={wallH}
-          onChange={(v) => {
-            pushUndoSnapshot();
-            setWallH(Math.max(0.5, v));
-          }}
-        />
-        <div className="rounded-2xl border border-black/10 bg-white p-4">
-          <div className="text-xs font-semibold text-black/70">Muren</div>
-          <button
-            type="button"
-            onClick={() => {
-              pushUndoSnapshot();
-              setShowWalls((p) => !p);
-            }}
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
-          >
-            {showWalls ? "Aan" : "Uit"}
-          </button>
-        </div>
+  <div className="rounded-2xl border border-black/10 bg-white p-3">
+    <div className="text-xs font-semibold text-black/70">Muren</div>
+    <button
+      type="button"
+      onClick={() => {
+        pushUndoSnapshot();
+        setShowWalls((p) => !p);
+      }}
+      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
+    >
+      {showWalls ? "Aan" : "Uit"}
+    </button>
+  </div>
+</div>
       </div>
 
       <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
@@ -1201,7 +1223,7 @@ function handlePlaceAt(x, z) {
                         <select
                           className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                           value={floorMaterialId}
-                          onChange={(e) => setFloorMaterialId(e.target.value)}
+                          onChange={(e) => { const v = e.target.value; if (v === floorMaterialId) return; pushUndoSnapshot(); setFloorMaterialId(v); }}
                         >
                           <option value="default">Huidig (simpel)</option>
                           <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
@@ -1215,7 +1237,7 @@ function handlePlaceAt(x, z) {
                         <select
                           className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                           value={wallMaterialId}
-                          onChange={(e) => setWallMaterialId(e.target.value)}
+                          onChange={(e) => { const v = e.target.value; if (v === wallMaterialId) return; pushUndoSnapshot(); setWallMaterialId(v); }}
                         >
                           <option value="default">Huidig (simpel)</option>
                           <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
@@ -1234,7 +1256,7 @@ function handlePlaceAt(x, z) {
                         <select
                           className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                           value={groundMaterialId}
-                          onChange={(e) => setGroundMaterialId(e.target.value)}
+                          onChange={(e) => { const v = e.target.value; if (v === groundMaterialId) return; pushUndoSnapshot(); setGroundMaterialId(v); }}
                         >
                           <option value="default">Huidig (simpel)</option>
                           <option value="pbr_grass">Gras (PBR)</option>
@@ -1247,7 +1269,7 @@ function handlePlaceAt(x, z) {
                         <select
                           className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                           value={boundaryMaterialId}
-                          onChange={(e) => setBoundaryMaterialId(e.target.value)}
+                          onChange={(e) => { const v = e.target.value; if (v === boundaryMaterialId) return; pushUndoSnapshot(); setBoundaryMaterialId(v); }}
                         >
                           <option value="default">Huidig (simpel)</option>
                           <option value="pbr_boundary_fence_wood">Schutting hout (PBR)</option>
@@ -1358,7 +1380,7 @@ function TabButton({ label, active, onClick }) {
   );
 }
 
-function LabeledNumber({ label, value, onChange, step = 0.1, min = 0 }) {
+function LabeledNumber({ label, value, onChange, step = 0.1, min = 0, compact = false }) {
   // We keep a local string so typing '.' or ',' on mobile works smoothly.
   const [raw, setRaw] = useState(String(value ?? ""));
 
