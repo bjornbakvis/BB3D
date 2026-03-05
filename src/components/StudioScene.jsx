@@ -1132,7 +1132,7 @@ function ZoomOverlay({ controlsRef, minDistance, maxDistance }) {
   };
 
   return (
-    <div className="pointer-events-auto absolute right-3 bottom-3 z-30 flex items-center gap-2 rounded-xl border border-black/10 bg-white/80 p-2 shadow-sm backdrop-blur">
+    <div className="pointer-events-auto z-30 flex items-center gap-2 rounded-xl border border-black/10 bg-white/90 p-2 shadow-sm backdrop-blur">
       <button
         type="button"
         className="h-9 w-9 rounded-lg border border-black/10 bg-white hover:bg-black/5 active:scale-[0.98]"
@@ -1292,10 +1292,13 @@ const wallNormalScaleToUse = realWall.ready ? realWall.normalScale : 0.7;
     );
   }
 
-  return (
-    <div className="relative h-full w-full">
+  
+return (
+  <div className="relative h-full w-full flex flex-col">
+    <div className="relative flex-1">
       <WebGLErrorBoundary fallback={<WebGLBlockedNotice />} onError={() => set__webglOk(false)}>
         <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
+
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
                 <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} />
@@ -1396,11 +1399,15 @@ const wallNormalScaleToUse = realWall.ready ? realWall.normalScale : 0.7;
           maxPolarAngle={Math.PI / 2 - 0.1}
           target={[0, 0, 0]}
         />
-</Canvas>
-      </WebGLErrorBoundary>
 
-      {/* Zoom UI overlay (DOM) */}
+        </Canvas>
+      </WebGLErrorBoundary>
+    </div>
+
+    {/* Zoom (in card footer, not over the 3D scene) */}
+    <div className="pointer-events-none flex h-14 items-end justify-end px-3 pb-3">
       <ZoomOverlay controlsRef={controlsRef} minDistance={2.5} maxDistance={Math.max(10, roomW + roomD)} />
     </div>
-  );
+  </div>
+);
 }
