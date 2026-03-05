@@ -1096,6 +1096,50 @@ function handlePlaceAt(x, z) {
 <div className="text-xs text-black/45" />
 
                     </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                        onClick={() => requestCamera("top")}
+                      >
+                        Top
+                      </button>
+
+                      <button
+                        type="button"
+                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                        onClick={() => requestCamera("front")}
+                      >
+                        Front
+                      </button>
+
+                      <button
+                        type="button"
+                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                        onClick={() => requestCamera("iso")}
+                      >
+                        Iso
+                      </button>
+
+                      <button
+                        type="button"
+                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled={!selectedId}
+                        onClick={() => requestCamera("focus")}
+                      >
+                        Focus
+                      </button>
+
+                      <button
+                        type="button"
+                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                        onClick={() => requestCamera("reset")}
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+
 
                     <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
                       <StudioScene
@@ -1118,51 +1162,7 @@ function handlePlaceAt(x, z) {
                         boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
                       />
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("top")}
-                        >
-                          Top
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("front")}
-                        >
-                          Front
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("iso")}
-                        >
-                          Iso
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                          disabled={!selectedId}
-                          onClick={() => requestCamera("focus")}
-                        >
-                          Focus
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("reset")}
-                        >
-                          Reset
-                        </button>
-                      </div>
-
-                      <div className="text-xs text-black/45">(3D komt hierna — dit is nu de “basis editor”)</div>
+                      
                     </div>
 
                   </section>
