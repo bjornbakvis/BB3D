@@ -1072,13 +1072,11 @@ function handlePlaceAt(x, z) {
     </button>
   </div>
 </div>
-      </div>
 
       <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
         Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
       </div>
     </div>
-  </div>
 </section>
 
         {/* Werkvlak card (breed, gecentreerd) */}
@@ -1344,6 +1342,7 @@ function handlePlaceAt(x, z) {
             </div>
           </div>
         </section>
+      </div>
       </div>
     </main>
   );
