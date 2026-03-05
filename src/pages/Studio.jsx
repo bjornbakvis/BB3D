@@ -1011,7 +1011,7 @@ function handlePlaceAt(x, z) {
       <div className="mt-5 flex flex-col gap-4">
         {/* Ruimte card (net zo breed als header/undo card) */}
 <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-  <div className={`rounded-2xl border border-black/10 bg-white ${compact ? "p-3" : "p-4"}`}>
+  <div className={`rounded-2xl border border-black/10 bg-white p-3`}>
     <div className="text-sm font-semibold text-black/80">Ruimte</div>
     
 <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-5 md:items-end">
