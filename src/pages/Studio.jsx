@@ -1110,15 +1110,7 @@ function handlePlaceAt(x, z) {
 
 
                       </div>
-
-
-
-                      <div className="text-xs text-black/45">
-
-
-                        (3D komt hierna — dit is nu de “basis editor”)
-                      </div>
-                    </div>
+</div>
 
                     <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
                       <StudioScene
@@ -1143,22 +1135,20 @@ function handlePlaceAt(x, z) {
                     </div>
                   </section>
 
-        {/* Editor card: tools + eigenschappen + materialen */}
-        <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Links: tools + objectbibliotheek */}
-            <div>
-              {/* LEFT: Tools */}
-                        <div className="rounded-2xl border border-black/10 bg-white p-4">
-                          <div className="text-sm font-semibold text-black/80">Tools</div>
-                          <div className="mt-3 grid gap-2">
-                            <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
-                            <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
-                            <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
-                            <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
-                          </div>
 
-                          {tool === "place" && (
+{/* Editor: Tools + Eigenschappen + Geselecteerd */}
+
+{/* Tools */}
+<section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+  <div className="text-sm font-semibold text-black/80">Tools</div>
+
+  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
+    <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
+    <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
+    <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
+  </div>
+{tool === "place" && (
                             <div className="mt-4">
                               <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
                               {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
@@ -1168,43 +1158,21 @@ function handlePlaceAt(x, z) {
                                     key={it.presetKey}
                                     type="button"
                                     onClick={() => setPlaceItemId(it.presetKey)}
-                                    className={clsx(
-                                      "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
-                                      placeItemId === it.presetKey ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div>{it.label}</div>
-                                      <div className={clsx("text-[11px]", placeItemId === it.presetKey ? "text-white/70" : "text-black/45")}>
-                                        {Math.round(it.w * 100)}×{Math.round(it.d * 100)}×{Math.round(it.h * 100)} cm
-                                      </div>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
 
-
-                          <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+<div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
                             <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-                            <ul className="mt-2 list-disc space-y-1 pl-4">
-                              <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
-                              <li>Klik op een blok om te selecteren.</li>
-                              <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
-                              <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
-                            </ul>
-                          </div>
-                        </div>
-            </div>
+        </section>
 
-            {/* Rechts: eigenschappen + materialen + geselecteerd */}
+
+        <section className="mt-4 grid gap-4 md:grid-cols-2">
+          <div>
+/* Rechts: eigenschappen + materialen + geselecteerd */}
             <div>
               <div className="rounded-2xl border border-black/10 bg-white p-4">
                 <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
-                
+
                 {/* Materialen (surfaces) */}
                 <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                   <div className="text-lg font-semibold">Materialen</div>
@@ -1278,7 +1246,10 @@ function handlePlaceAt(x, z) {
                     </div>
                   )}
                 </div>
-                {selectedObj ? (
+          </div>
+
+          <div>
+{selectedObj ? (
                   <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                     <div className="text-lg font-semibold">Geselecteerd</div>
                     <div className="mt-1 text-sm font-semibold text-black/80">
@@ -1338,10 +1309,9 @@ function handlePlaceAt(x, z) {
                     Klik op een object om eigenschappen te zien.
                   </div>
                 )}
-              </div>
-            </div>
           </div>
         </section>
+
       </div>
       </div>
     </main>
