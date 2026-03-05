@@ -1110,6 +1110,14 @@ function handlePlaceAt(x, z) {
 
 
                       </div>
+
+
+
+                      <div className="text-xs text-black/45">
+
+
+                        (3D komt hierna — dit is nu de “basis editor”)
+                      </div>
                     </div>
 
                     <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
@@ -1137,12 +1145,13 @@ function handlePlaceAt(x, z) {
 
         {/* Editor card: tools + eigenschappen + materialen */}
         <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-                    <div className="grid gap-4">
-            {/* Tools card (buttons horizontal). Objectbibliotheek verschijnt bij Plaats blok */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Links: tools + objectbibliotheek */}
             <div>
-<div className="rounded-2xl border border-black/10 bg-white p-4">
+              {/* LEFT: Tools */}
+                        <div className="rounded-2xl border border-black/10 bg-white p-4">
                           <div className="text-sm font-semibold text-black/80">Tools</div>
-                          <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div className="mt-3 grid gap-2">
                             <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
                             <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
                             <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
@@ -1153,7 +1162,7 @@ function handlePlaceAt(x, z) {
                             <div className="mt-4">
                               <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
                               {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
-                              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <div className="mt-3 grid gap-2">
                                 {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
                                   <button
                                     key={it.presetKey}
@@ -1189,10 +1198,9 @@ function handlePlaceAt(x, z) {
                         </div>
             </div>
 
-            {/* Onder tools: Eigenschappen + Geselecteerd naast elkaar */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-<div className="rounded-2xl border border-black/10 bg-white p-4">
+            {/* Rechts: eigenschappen + materialen + geselecteerd */}
+            <div>
+              <div className="rounded-2xl border border-black/10 bg-white p-4">
                 <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
@@ -1270,9 +1278,7 @@ function handlePlaceAt(x, z) {
                     </div>
                   )}
                 </div>
-              </div>
-              <div>
-{selectedObj ? (
+                {selectedObj ? (
                   <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                     <div className="text-lg font-semibold">Geselecteerd</div>
                     <div className="mt-1 text-sm font-semibold text-black/80">
