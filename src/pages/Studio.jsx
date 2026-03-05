@@ -1011,185 +1011,45 @@ function handlePlaceAt(x, z) {
       <div className="mt-5 flex flex-col gap-4">
         {/* Ruimte card (net zo breed als header/undo card) */}
 <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-  <div className={`rounded-2xl border border-black/10 bg-white p-3`}>
-    <div className="text-sm font-semibold text-black/80">Ruimte</div>
-    
-<div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-5 md:items-end">
-  <div className="rounded-2xl border border-black/10 bg-white p-4 md:col-span-1">
-    <div className="text-xs font-semibold text-black/70">Template</div>
-    <select
-      value={templateId}
-      onChange={(e) => applyTemplate(e.target.value)}
-      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-    >
-      {Object.entries(TEMPLATES).map(([key, t]) => (
-        <option key={key} value={key}>
-          {t.label}
-        </option>
-      ))}
-    </select>
-  </div>
+          /* LEFT: Tools */}
+                        <div className="rounded-2xl border border-black/10 bg-white p-4">
+                          <div className="text-sm font-semibold text-black/80">Tools</div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                            <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
+                            <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
+                            <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
+                            <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
+                          </div>
 
-  <LabeledNumber
-    label="Breedte (m)"
-    value={roomW}
-    onChange={(v) => {
-      pushUndoSnapshot();
-      setRoomW(Math.max(0.5, v));
-    }}
-    compact
-  />
-  <LabeledNumber
-    label="Diepte (m)"
-    value={roomD}
-    onChange={(v) => {
-      pushUndoSnapshot();
-      setRoomD(Math.max(0.5, v));
-    }}
-    compact
-  />
-  <LabeledNumber
-    label="Muurhoogte (m)"
-    value={wallH}
-    onChange={(v) => {
-      pushUndoSnapshot();
-      setWallH(Math.max(0.5, v));
-    }}
-    compact
-  />
+                          {tool === "place" && (
+                            <div className="mt-4">
+                              <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
+                              {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
+                              <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                                {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
+                                  <button
+                                    key={it.presetKey}
+                                    type="button"
+                                    onClick={() => setPlaceItemId(it.presetKey)}
+                                    className={clsx(
+                                      "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
+                                      placeItemId === it.presetKey ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div>{it.label}</div>
+                                      <div className={clsx("text-[11px]", placeItemId === it.presetKey ? "text-white/70" : "text-black/45")}>
+                                        {Math.round(it.w * 100)}×{Math.round(it.d * 100)}×{Math.round(it.h * 100)} cm
+                                      </div>
+                                    </div>
 
-  <div className="rounded-2xl border border-black/10 bg-white p-4">
-    <div className="text-xs font-semibold text-black/70">Muren</div>
-    <button
-      type="button"
-      onClick={() => {
-        pushUndoSnapshot();
-        setShowWalls((p) => !p);
-      }}
-      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
-    >
-      {showWalls ? "Aan" : "Uit"}
-    </button>
-  </div>
-</div>
-
-      <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-        Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
-      </div>
-    </div>
-</section>
-
-        {/* Werkvlak card (breed, gecentreerd) */}
-        {/* CENTER: Canvas */}
-                  <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-black/80">Werkvlak</div>
-                        <div className="text-xs text-black/50">
-                          Tool: <span className="font-semibold text-black/70">{tool}</span> • Objecten:{" "}
-                          <span className="font-semibold text-black/70">{objects.length}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-
-
-                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("top")}>Top</button>
-
-
-                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("front")}>Front</button>
-
-
-                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("iso")}>Iso</button>
-
-
-                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selectedId} onClick={() => requestCamera("focus")}>Focus</button>
-
-
-                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("reset")}>Reset</button>
-
-
-                      </div>
-</div>
-
-                    <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
-                      <StudioScene
-          templateId={templateId}
-                                        cameraAction={cameraAction}
-        objects={objects}
-                        selectedId={selectedId}
-                        tool={tool}
-                        onPlaceAt={handlePlaceAt}
-                        onObjectClick={handleObjectClick3D}
-                        onMoveStart={handleMoveStart}
-                        onMove={handleMoveAt}
-                        roomW={roomW}
-                        roomD={roomD}
-                        wallH={wallH}
-                        showWalls={showWalls}
-                        floorMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : floorMaterialId}
-                        wallMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : wallMaterialId}
-                        groundMaterialId={(templateId === "tuin" || templateId === "garden") ? groundMaterialId : "default"}
-                        boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
-                      />
-                    </div>
-                  </section>
-
-
-{/* Editor: Tools + Eigenschappen + Geselecteerd */}
-
-{/* Tools */}
-<section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-  <div className="text-sm font-semibold text-black/80">Tools</div>
-
-  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-    <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
-    <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
-    <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
-    <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
-  </div>
-
-  {tool === "place" && (
-    <div className="mt-4">
-      <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
-
-      {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
-      <div className="mt-3 grid gap-2">
-        {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
-          <button
-            key={it.presetKey}
-            type="button"
-            onClick={() => setPlaceItemId(it.presetKey)}
-            className={
-              "w-full rounded-2xl border border-black/10 px-3 py-3 text-left text-sm shadow-sm transition " +
-              (placeItemId === it.presetKey ? "bg-black text-white" : "bg-white text-black/80 hover:bg-black/5")
-            }
-          >
-            {it.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-        <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-        <ul className="mt-2 list-disc space-y-1 pl-4">
-          <li>Kies “Plaats blok”.</li>
-          <li>Kies een object in de bibliotheek.</li>
-          <li>Klik in het 3D werkvlak om te plaatsen.</li>
-        </ul>
-      </div>
-    </div>
-  )}
-</section>
-        <section className="mt-4 grid gap-4 md:grid-cols-2">
-          <div>
-{/* Rechts: eigenschappen + materialen + geselecteerd */}
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
               <div className="rounded-2xl border border-black/10 bg-white p-4">
                 <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
 
 
-
+                
                 {/* Materialen (surfaces) */}
                 <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                   <div className="text-lg font-semibold">Materialen</div>
@@ -1263,10 +1123,9 @@ function handlePlaceAt(x, z) {
                     </div>
                   )}
                 </div>
-          </div>
-
-          <div>
-{selectedObj ? (
+            </div>
+            <div>
+              {selectedObj ? (
                   <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                     <div className="text-lg font-semibold">Geselecteerd</div>
                     <div className="mt-1 text-sm font-semibold text-black/80">
@@ -1326,9 +1185,274 @@ function handlePlaceAt(x, z) {
                     Klik op een object om eigenschappen te zien.
                   </div>
                 )}
+            </div>
           </div>
+
         </section>
 
+        {/* Werkvlak card (breed, gecentreerd) */}
+        {/* CENTER: Canvas */}
+                  <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-black/80">Werkvlak</div>
+                        <div className="text-xs text-black/50">
+                          Tool: <span className="font-semibold text-black/70">{tool}</span> • Objecten:{" "}
+                          <span className="font-semibold text-black/70">{objects.length}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+
+
+                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("top")}>Top</button>
+
+
+                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("front")}>Front</button>
+
+
+                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("iso")}>Iso</button>
+
+
+                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selectedId} onClick={() => requestCamera("focus")}>Focus</button>
+
+
+                        <button type="button" className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]" onClick={() => requestCamera("reset")}>Reset</button>
+
+
+                      </div>
+
+
+
+                      <div className="text-xs text-black/45">
+
+
+                        
+                      </div>
+                    </div>
+
+                    <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
+                      <StudioScene
+          templateId={templateId}
+                                        cameraAction={cameraAction}
+        objects={objects}
+                        selectedId={selectedId}
+                        tool={tool}
+                        onPlaceAt={handlePlaceAt}
+                        onObjectClick={handleObjectClick3D}
+                        onMoveStart={handleMoveStart}
+                        onMove={handleMoveAt}
+                        roomW={roomW}
+                        roomD={roomD}
+                        wallH={wallH}
+                        showWalls={showWalls}
+                        floorMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : floorMaterialId}
+                        wallMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : wallMaterialId}
+                        groundMaterialId={(templateId === "tuin" || templateId === "garden") ? groundMaterialId : "default"}
+                        boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
+                      />
+                    </div>
+                  </section>
+
+        {/* Editor card: tools + eigenschappen + materialen */}
+        <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Links: tools + objectbibliotheek */}
+            <div>
+              {/* LEFT: Tools */}
+                        <div className="rounded-2xl border border-black/10 bg-white p-4">
+                          <div className="text-sm font-semibold text-black/80">Tools</div>
+                          <div className="mt-3 grid gap-2">
+                            <ToolButton label="Select" active={tool === "select"} onClick={() => setTool("select")} />
+                            <ToolButton label="Plaats blok" active={tool === "place"} onClick={() => setTool("place")} />
+                            <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
+                            <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
+                          </div>
+
+                          {tool === "place" && (
+                            <div className="mt-4">
+                              <div className="text-xs font-semibold text-black/70">Objectbibliotheek</div>
+                              {/* Objectbibliotheek volgt automatisch de gekozen ruimte */}
+                              <div className="mt-3 grid gap-2">
+                                {(catalogByTab[effectiveLibraryTab] || []).map((it) => (
+                                  <button
+                                    key={it.presetKey}
+                                    type="button"
+                                    onClick={() => setPlaceItemId(it.presetKey)}
+                                    className={clsx(
+                                      "w-full rounded-2xl border px-3 py-3 text-left text-sm font-medium shadow-sm",
+                                      placeItemId === it.presetKey ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div>{it.label}</div>
+                                      <div className={clsx("text-[11px]", placeItemId === it.presetKey ? "text-white/70" : "text-black/45")}>
+                                        {Math.round(it.w * 100)}×{Math.round(it.d * 100)}×{Math.round(it.h * 100)} cm
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+
+                          <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+                            <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
+                            <ul className="mt-2 list-disc space-y-1 pl-4">
+                              <li>Kies “Plaats blok” en klik in het 3D werkvlak.</li>
+                              <li>Klik op een blok om te selecteren.</li>
+                              <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
+                              <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
+                            </ul>
+                          </div>
+                        </div>
+            </div>
+
+            {/* Rechts: eigenschappen + materialen + geselecteerd */}
+            <div>
+              <div className="rounded-2xl border border-black/10 bg-white p-4">
+                <div className="text-sm font-semibold text-black/80">Eigenschappen</div>
+
+
+                
+                {/* Materialen (surfaces) */}
+                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                  <div className="text-lg font-semibold">Materialen</div>
+                  <div className="mt-1 text-sm text-black/60">
+                    Voor écht realistische tegels/gras: voeg PBR textures toe in <code>/public/textures</code> en kies een optie met <b>(PBR)</b>.
+                    Als de bestanden ontbreken blijft de huidige (simpele) look actief.
+                  </div>
+
+                  {/* Indoor: badkamer/toilet */}
+                  {templateId !== "tuin" && templateId !== "garden" && (
+                    <div className="mt-4 grid gap-3">
+                      <div>
+                        <div className="text-sm font-medium">Vloer</div>
+                        <select
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                          value={floorMaterialId}
+                          onChange={(e) => { const v = e.target.value; if (v === floorMaterialId) return; pushUndoSnapshot(); setFloorMaterialId(v); }}
+                        >
+                          <option value="default">Huidig (simpel)</option>
+                          <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+                          <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
+                          <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-medium">Wanden</div>
+                        <select
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                          value={wallMaterialId}
+                          onChange={(e) => { const v = e.target.value; if (v === wallMaterialId) return; pushUndoSnapshot(); setWallMaterialId(v); }}
+                        >
+                          <option value="default">Huidig (simpel)</option>
+                          <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
+                          <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
+                          <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Garden: ground + boundary (on the same spot where "Vloer" normally is) */}
+                  {(templateId === "tuin" || templateId === "garden") && (
+                    <div className="mt-4 grid gap-3">
+                      <div>
+                        <div className="text-sm font-medium">Tuin: grond</div>
+                        <select
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                          value={groundMaterialId}
+                          onChange={(e) => { const v = e.target.value; if (v === groundMaterialId) return; pushUndoSnapshot(); setGroundMaterialId(v); }}
+                        >
+                          <option value="default">Huidig (simpel)</option>
+                          <option value="pbr_grass">Gras (PBR)</option>
+                          <option value="pbr_paving">Terrastegel / bestrating (PBR)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-medium">Terreinafscheiding</div>
+                        <select
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                          value={boundaryMaterialId}
+                          onChange={(e) => { const v = e.target.value; if (v === boundaryMaterialId) return; pushUndoSnapshot(); setBoundaryMaterialId(v); }}
+                        >
+                          <option value="default">Huidig (simpel)</option>
+                          <option value="pbr_boundary_fence_wood">Schutting hout (PBR)</option>
+                          <option value="pbr_boundary_hedge">Haag / begroeiing (PBR)</option>
+                          <option value="pbr_boundary_concrete">Muur / beton (PBR)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedObj ? (
+                  <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                    <div className="text-lg font-semibold">Geselecteerd</div>
+                    <div className="mt-1 text-sm font-semibold text-black/80">
+                      {selectedObj.type} • {selectedObj.id}
+                    </div>
+
+                    <div className="mt-3 grid gap-3">
+                                <LabeledNumber
+                                  label="Breedte (w)"
+                                  value={selectedObj.w}
+                                  onChange={(v) => updateSelected({ w: v })}
+                                />
+                                <LabeledNumber
+                                  label="Hoogte (h)"
+                                  value={selectedObj.h}
+                                  onChange={(v) => updateSelected({ h: v })}
+                                />
+                                <LabeledNumber
+                                  label="Diepte (d)"
+                                  value={selectedObj.d}
+                                  onChange={(v) => updateSelected({ d: v })}
+                                />
+
+                                <LabeledNumber
+                                  label="Hoogte boven vloer (y)"
+                                  value={selectedObj.y ?? 0}
+                                  step={0.1}
+                                  onChange={(v) => updateSelected({ y: Math.max(0, v) })}
+                                />
+
+                                <LabeledNumber
+                                  label="Rotatie (°)"
+                                  value={selectedObj.rotY ?? 0}
+                                  step={1}
+                                  onChange={(v) => updateSelected({ rotY: v })}
+                                />
+
+                                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                                  <div className="text-xs font-semibold text-black/70">Kleur / materiaal</div>
+                                  <select
+                                    value={selectedObj.color ?? ""}
+                                    onChange={(e) => updateSelected({ color: e.target.value })}
+                                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+                                  >
+                                    <option value="">Auto (type)</option>
+                                    <option value="Stone">Stone</option>
+                                    <option value="Wood">Wood</option>
+                                    <option value="Concrete">Concrete</option>
+                                    <option value="White">White</option>
+                                    <option value="Black">Black</option>
+                                  </select>
+                                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-black/10 bg-white p-4 text-sm text-black/60 shadow-sm">
+                    Klik op een object om eigenschappen te zien.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
       </div>
     </main>
