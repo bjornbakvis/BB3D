@@ -1321,9 +1321,6 @@ function handlePlaceAt(x, z) {
           </div>
         </section>
       </div>
-
-      </div>
-      </div>
     </main>
   );
 }
