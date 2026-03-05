@@ -966,36 +966,6 @@ function handlePlaceAt(x, z) {
               >
                 Nieuw project
               </button>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={undo}
-                  type="button"
-                  disabled={!canUndo}
-                  className={clsx(
-                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
-                    canUndo
-                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
-                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={redo}
-                  type="button"
-                  disabled={!canRedo}
-                  className={clsx(
-                    "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
-                    canRedo
-                      ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
-                      : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  Redo
-                </button>
-              </div>
-
               <button
                 onClick={saveProject}
                 type="button"
@@ -1082,7 +1052,7 @@ function handlePlaceAt(x, z) {
         {/* Werkvlak card (breed, gecentreerd) */}
         {/* CENTER: Canvas */}
                   <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
                       <div>
                         <div className="text-sm font-semibold text-black/80">Werkvlak</div>
                         <div className="text-xs text-black/50">
@@ -1091,56 +1061,78 @@ function handlePlaceAt(x, z) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2" />
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                          onClick={() => requestCamera("top")}
+                        >
+                          Top
+                        </button>
 
+                        <button
+                          type="button"
+                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                          onClick={() => requestCamera("front")}
+                        >
+                          Front
+                        </button>
 
+                        <button
+                          type="button"
+                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                          onClick={() => requestCamera("iso")}
+                        >
+                          Iso
+                        </button>
 
+                        <button
+                          type="button"
+                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                          disabled={!selectedId}
+                          onClick={() => requestCamera("focus")}
+                        >
+                          Focus
+                        </button>
+
+                        <button
+                          type="button"
+                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
+                          onClick={() => requestCamera("reset")}
+                        >
+                          Reset
+                        </button>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={undo}
+                          type="button"
+                          disabled={!canUndo}
+                          className={clsx(
+                            "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                            canUndo
+                              ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
+                              : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          Undo
+                        </button>
+                        <button
+                          onClick={redo}
+                          type="button"
+                          disabled={!canRedo}
+                          className={clsx(
+                            "rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+                            canRedo
+                              ? "border-black/10 bg-white text-black/80 hover:bg-black/5"
+                              : "border-black/10 bg-white text-black/30 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          Redo
+                        </button>
+                      </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                        onClick={() => requestCamera("top")}
-                      >
-                        Top
-                      </button>
-
-                      <button
-                        type="button"
-                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                        onClick={() => requestCamera("front")}
-                      >
-                        Front
-                      </button>
-
-                      <button
-                        type="button"
-                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                        onClick={() => requestCamera("iso")}
-                      >
-                        Iso
-                      </button>
-
-                      <button
-                        type="button"
-                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                        disabled={!selectedId}
-                        onClick={() => requestCamera("focus")}
-                      >
-                        Focus
-                      </button>
-
-                      <button
-                        type="button"
-                        className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                        onClick={() => requestCamera("reset")}
-                      >
-                        Reset
-                      </button>
-                    </div>
-
-
-
                     <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
                       <StudioScene
           templateId={templateId}
