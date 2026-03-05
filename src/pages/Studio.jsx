@@ -1225,10 +1225,6 @@ function handlePlaceAt(x, z) {
               {/* Materialen (surfaces) */}
               <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                 <div className="text-lg font-semibold">Materialen</div>
-                <div className="mt-1 text-sm text-black/60">
-                  Voor écht realistische tegels/gras: voeg PBR textures toe in <code>/public/textures</code> en kies een optie met <b>(PBR)</b>.
-                  Als de bestanden ontbreken blijft de huidige (simpele) look actief.
-                </div>
 
                 {/* Indoor: badkamer/toilet */}
                 {templateId !== "tuin" && templateId !== "garden" && (
