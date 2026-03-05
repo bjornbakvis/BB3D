@@ -1015,12 +1015,12 @@ function handlePlaceAt(x, z) {
     <div className="text-sm font-semibold text-black/80">Ruimte</div>
     
 <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-5 md:items-end">
-  <div className="rounded-2xl border border-black/10 bg-white p-3 md:col-span-1">
+  <div className="rounded-2xl border border-black/10 bg-white p-4 md:col-span-1">
     <div className="text-xs font-semibold text-black/70">Template</div>
     <select
       value={templateId}
       onChange={(e) => applyTemplate(e.target.value)}
-      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
     >
       {Object.entries(TEMPLATES).map(([key, t]) => (
         <option key={key} value={key}>
@@ -1058,7 +1058,7 @@ function handlePlaceAt(x, z) {
     compact
   />
 
-  <div className="rounded-2xl border border-black/10 bg-white p-3">
+  <div className="rounded-2xl border border-black/10 bg-white p-4">
     <div className="text-xs font-semibold text-black/70">Muren</div>
     <button
       type="button"
@@ -1066,14 +1066,14 @@ function handlePlaceAt(x, z) {
         pushUndoSnapshot();
         setShowWalls((p) => !p);
       }}
-      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
+      className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 <div className="rounded-2xl border border-black/10 bg-white py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
     >
       {showWalls ? "Aan" : "Uit"}
     </button>
   </div>
 </div>
 
-      <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+      <div className="mt-3 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
         Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
       </div>
     </div>
