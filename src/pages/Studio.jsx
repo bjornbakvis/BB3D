@@ -1315,12 +1315,18 @@ function handlePlaceAt(x, z) {
 
               {/* Rechts: Geselecteerd */}
               <div className="rounded-2xl border border-black/10 bg-white p-4">
-                <div className="text-lg font-semibold">Geselecteerd</div>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="text-lg font-semibold">Geselecteerd</div>
+                  {selectedObj && (
+                    <div className="text-sm font-semibold text-black/70">
+                      {selectedObj.label || selectedObj.type}
+                    </div>
+                  )}
+                </div>
 
                 {selectedObj ? (
-                  <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-                    <div className="text-lg font-semibold">Details</div>
-                    <div className="mt-1 text-sm font-semibold text-black/80">
+                  <div className="mt-3">
+                    <div className="text-sm font-semibold text-black/80">
                       {selectedObj.type} • {selectedObj.id}
                     </div>
 
