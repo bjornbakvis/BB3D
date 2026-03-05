@@ -1076,7 +1076,6 @@ function handlePlaceAt(x, z) {
       <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
         Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
       </div>
-    </div>
 </section>
 
         {/* Werkvlak card (breed, gecentreerd) */}
@@ -1163,8 +1162,6 @@ function handlePlaceAt(x, z) {
                       />
                     </div>
                       
-                    </div>
-
                   </section>
 
         {/* Tools card (direct onder werkvlak) */}
