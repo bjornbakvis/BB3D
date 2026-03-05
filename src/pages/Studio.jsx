@@ -990,72 +990,74 @@ function handlePlaceAt(x, z) {
               {/* Vertical editor layout (Variant A) */}
       <div className="mt-5 flex flex-col gap-4">
         {/* Ruimte card (net zo breed als header/undo card) */}
-        <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="rounded-2xl border border-black/10 bg-white p-4">
-                        <div className="text-sm font-semibold text-black/80">Ruimte</div>
-                        <div className="mt-2 grid gap-3">
-                          <div>
-                            <div className="text-xs font-semibold text-black/70">Template</div>
-                            <select
-                              value={templateId}
-                              onChange={(e) => applyTemplate(e.target.value)}
-                              className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
-                            >
-                              {Object.entries(TEMPLATES).map(([key, t]) => (
-                                <option key={key} value={key}>
-                                  {t.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+<section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+  <div className="rounded-2xl border border-black/10 bg-white p-4">
+    <div className="text-sm font-semibold text-black/80">Ruimte</div>
+    <div className="mt-2 grid gap-3">
+      <div>
+        <div className="text-xs font-semibold text-black/70">Template</div>
+        <select
+          value={templateId}
+          onChange={(e) => applyTemplate(e.target.value)}
+          className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
+        >
+          {Object.entries(TEMPLATES).map(([key, t]) => (
+            <option key={key} value={key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            <LabeledNumber
-                              label="Breedte (m)"
-                              value={roomW}
-                              onChange={(v) => {
-                                pushUndoSnapshot();
-                                setRoomW(Math.max(0.5, v));
-                              }}
-                            />
-                            <LabeledNumber
-                              label="Diepte (m)"
-                              value={roomD}
-                              onChange={(v) => {
-                                pushUndoSnapshot();
-                                setRoomD(Math.max(0.5, v));
-                              }}
-                            />
-                          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledNumber
+          label="Breedte (m)"
+          value={roomW}
+          onChange={(v) => {
+            pushUndoSnapshot();
+            setRoomW(Math.max(0.5, v));
+          }}
+        />
+        <LabeledNumber
+          label="Diepte (m)"
+          value={roomD}
+          onChange={(v) => {
+            pushUndoSnapshot();
+            setRoomD(Math.max(0.5, v));
+          }}
+        />
+      </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            <LabeledNumber
-                              label="Muurhoogte (m)"
-                              value={wallH}
-                              onChange={(v) => {
-                                pushUndoSnapshot();
-                                setWallH(Math.max(0.5, v));
-                              }}
-                            />
-                            <div className="rounded-2xl border border-black/10 bg-white p-4">
-                              <div className="text-xs font-semibold text-black/70">Muren</div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  pushUndoSnapshot();
-                                  setShowWalls((p) => !p);
-                                }}
-                                className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
-                              >
-                                {showWalls ? "Aan" : "Uit"}
-                              </button>
-                            </div>
-                          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledNumber
+          label="Muurhoogte (m)"
+          value={wallH}
+          onChange={(v) => {
+            pushUndoSnapshot();
+            setWallH(Math.max(0.5, v));
+          }}
+        />
+        <div className="rounded-2xl border border-black/10 bg-white p-4">
+          <div className="text-xs font-semibold text-black/70">Muren</div>
+          <button
+            type="button"
+            onClick={() => {
+              pushUndoSnapshot();
+              setShowWalls((p) => !p);
+            }}
+            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5"
+          >
+            {showWalls ? "Aan" : "Uit"}
+          </button>
+        </div>
+      </div>
 
-                          <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-                            Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
-                          </div>
-        </section>
+      <div className="rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
+        Tip: pas eerst de ruimte aan, daarna blokken plaatsen.
+      </div>
+    </div>
+  </div>
+</section>
 
         {/* Werkvlak card (breed, gecentreerd) */}
         {/* CENTER: Canvas */}
@@ -1320,6 +1322,7 @@ function handlePlaceAt(x, z) {
             </div>
           </div>
         </section>
+      </div>
       </div>
     </main>
   );
