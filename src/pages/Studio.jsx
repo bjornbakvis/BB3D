@@ -1485,6 +1485,7 @@ function handlePlaceAt(x, z) {
         </section>
 
       </div>
+      </div>
     </main>
   );
 }
