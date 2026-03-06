@@ -1192,10 +1192,10 @@ function handlePlaceAt(x, z) {
             <div className="text-sm font-semibold text-black/80">Tools</div>
 
             <div className="mt-3 grid grid-cols-4 gap-2">
-              <ToolButton icon={<MousePointer2 size={18} />} active={tool === "select"} onClick={() => setTool("select")} />
-              <ToolButton icon={<Plus size={18} />} active={tool === "place"} onClick={() => setTool("place")} />
-              <ToolButton icon={<Move size={18} />} active={tool === "move"} onClick={() => setTool("move")} />
-              <ToolButton icon={<Trash2 size={18} />} active={tool === "delete"} onClick={() => setTool("delete")} />
+              <ToolButton title="Selecteer" icon={<MousePointer2 size={18} />} active={tool === "select"} onClick={() => setTool("select")} />
+              <ToolButton title="Plaats object" icon={<Plus size={18} />} active={tool === "place"} onClick={() => setTool("place")} />
+              <ToolButton title="Verplaats" icon={<Move size={18} />} active={tool === "move"} onClick={() => setTool("move")} />
+              <ToolButton title="Verwijder" icon={<Trash2 size={18} />} active={tool === "delete"} onClick={() => setTool("delete")} />
             </div>
 
             {tool === "place" && (
@@ -1232,15 +1232,6 @@ function handlePlaceAt(x, z) {
               </div>
             )}
 
-            <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-xs text-black/60">
-              <div className="font-semibold text-black/75">Hoe werkt het nu?</div>
-              <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Kies “Plaats object” en klik in het 3D werkvlak.</li>
-                <li>Klik op een blok om te selecteren.</li>
-                <li>Kies “Verplaats” en sleep een blok om te verplaatsen.</li>
-                <li>Kies “Verwijder” en klik op een blok om te verwijderen.</li>
-              </ul>
-            </div>
           </div>
         </section>
 
@@ -1409,11 +1400,13 @@ function handlePlaceAt(x, z) {
   );
 }
 
-function ToolButton({ icon, active, onClick }) {
+function ToolButton({ title, icon, active, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
+      aria-label={title}
       className={clsx(
         "flex w-full items-center justify-center rounded-2xl border px-3 py-3 shadow-sm",
         active ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
