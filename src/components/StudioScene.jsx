@@ -193,9 +193,9 @@ const REAL_PBR_PRESETS = {
   pbr_grass: {
     label: "Gras (PBR)",
     paths: {
-      albedo: "/textures/garden/grass/albedo.jpg",
-      normal: "/textures/garden/grass/normal.jpg",
-      roughness: "/textures/garden/grass/roughness.jpg",
+      albedo: "/textures/garden/grass/albedo.ktx2",
+      normal: "/textures/garden/grass/normal.ktx2",
+      roughness: "/textures/garden/grass/roughness.ktx2",
     },
     tileSizeM: 1.0,
     normalScale: 1.0,
