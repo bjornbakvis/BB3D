@@ -2,6 +2,7 @@ import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Edges, Html, Environment } from "@react-three/drei";
+import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader";
 
 function isWebGLAvailable() {
   // Guard for SSR / non-browser environments
@@ -233,6 +234,49 @@ pbr_boundary_concrete: {
 // Cache textures across component lifetimes (avoid reload spam)
 const __realPbrCache = new Map();
 
+// Minimal KTX2 support: if a preset path ends with .ktx2 we load it via KTX2Loader.
+// Existing JPG-based presets keep working unchanged.
+let __ktx2LoaderSingleton = null;
+
+function __isKtx2Path(url) {
+  return typeof url === "string" && url.toLowerCase().endsWith(".ktx2");
+}
+
+function __getKtx2Loader() {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  if (__ktx2LoaderSingleton) return __ktx2LoaderSingleton;
+
+  const canvas = document.createElement("canvas");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+
+  const loader = new KTX2Loader();
+  loader.setTranscoderPath("/basis/");
+  loader.detectSupport(renderer);
+
+  try {
+    renderer.dispose();
+    renderer.forceContextLoss?.();
+  } catch {}
+
+  __ktx2LoaderSingleton = loader;
+  return loader;
+}
+
+function __loadTextureAny(url, onLoad, onError) {
+  if (__isKtx2Path(url)) {
+    const ktx2Loader = __getKtx2Loader();
+    if (!ktx2Loader) {
+      onError?.(new Error("KTX2 loader could not be created"));
+      return;
+    }
+    ktx2Loader.load(url, onLoad, undefined, onError);
+    return;
+  }
+
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(url, onLoad, undefined, onError);
+}
+
 function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
   if (!tex) return;
   tex.wrapS = THREE.RepeatWrapping;
@@ -283,7 +327,6 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
     }
 
     let cancelled = false;
-    const loader = new THREE.TextureLoader();
 
     const out = { map: null, normalMap: null, roughnessMap: null, normalScale: preset.normalScale ?? 0.7 };
     let ok = 0;
@@ -310,7 +353,7 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
     };
 
     const loadOne = (key, url) => {
-      loader.load(
+      __loadTextureAny(
         url,
         (tex) => {
           if (cancelled) {
@@ -321,7 +364,6 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
           ok += 1;
           if (ok === 3) finish();
         },
-        undefined,
         () => {
           failed = true;
           finish();
