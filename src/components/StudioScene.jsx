@@ -1366,7 +1366,7 @@ return (
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallOpacity={theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
