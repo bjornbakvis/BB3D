@@ -157,6 +157,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 0.15,
     normalScale: 0.8,
+    roughnessStrength: 0.22,
   },
   pbr_tile_grey_matte: {
     label: "Tegel – mat grijs (PBR)",
@@ -167,6 +168,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 0.60,
     normalScale: 0.7,
+    roughnessStrength: 0.95,
   },
   pbr_marble_gloss: {
     label: "Marmer – glanzend (PBR)",
@@ -177,6 +179,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 0.80,
     normalScale: 0.5,
+    roughnessStrength: 0.35,
   },
   pbr_granite_grey_tile: {
     label: "Graniet tegel – grijs (PBR)",
@@ -187,6 +190,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 0.60,
     normalScale: 0.45,
+    roughnessStrength: 0.6,
   },
 
   // Garden
@@ -199,6 +203,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 1.0,
     normalScale: 1.0,
+    roughnessStrength: 0.95,
   },
   pbr_paving: {
     label: "Terrastegel / bestrating (PBR)",
@@ -209,6 +214,7 @@ const REAL_PBR_PRESETS = {
     },
     tileSizeM: 0.60,
     normalScale: 0.8,
+    roughnessStrength: 0.9,
   },
 
 // Garden boundaries (terrain separation) - add your own CC0 textures here
@@ -220,6 +226,7 @@ pbr_boundary_fence_wood: {
     roughness: "/textures/garden/boundary/fence_wood/roughness.jpg",
   },
   tileSizeM: 1.0,
+  roughnessStrength: 0.85,
 },
 pbr_boundary_hedge: {
   label: "Haag / begroeiing (PBR)",
@@ -229,6 +236,7 @@ pbr_boundary_hedge: {
     roughness: "/textures/garden/boundary/hedge/roughness.jpg",
   },
   tileSizeM: 1.0,
+  roughnessStrength: 0.95,
 },
 pbr_boundary_concrete: {
   label: "Muur / beton (PBR)",
@@ -238,6 +246,7 @@ pbr_boundary_concrete: {
     roughness: "/textures/garden/boundary/concrete/roughness.jpg",
   },
   tileSizeM: 1.0,
+  roughnessStrength: 0.9,
 },
 };
 
@@ -845,7 +854,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallOpacity, controlsRef, cameraAction }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallRoughnessStrength = 0.9, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -951,7 +960,7 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
       roughnessMap={wallRoughnessMap || null}
       normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
       color="#ffffff"
-      roughness={wallRoughnessMap ? 0.9 : 0.92}
+      roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
       metalness={0}
       transparent={wallOpacity < 1}
       opacity={wallOpacity}
@@ -1319,6 +1328,18 @@ const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRep
 const realWall = useRealPBRSet(effectiveWallMaterialId, wallRepeatX, wallRepeatY);
 const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
+const floorPresetRoughness = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveFloorMaterialId]?.roughnessStrength ?? 0.9;
+}, [effectiveFloorMaterialId]);
+
+const wallPresetRoughness = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveWallMaterialId]?.roughnessStrength ?? 0.9;
+}, [effectiveWallMaterialId]);
+
+const groundPresetRoughness = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveGroundMaterialId]?.roughnessStrength ?? 0.95;
+}, [effectiveGroundMaterialId]);
+
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -1393,7 +1414,7 @@ return (
             roughnessMap={(isGardenTemplate && realGround.ready) ? realGround.roughnessMap : (realFloor.ready ? realFloor.roughnessMap : null)}
             normalScale={(isGardenTemplate && realGround.ready) ? new THREE.Vector2(realGround.normalScale, realGround.normalScale) : (realFloor.ready ? new THREE.Vector2(realFloor.normalScale, realFloor.normalScale) : undefined)}
             color="#ffffff"
-            roughness={(isGardenTemplate && realGround.ready) ? 0.95 : (realFloor.ready ? 0.9 : 0.95)}
+            roughness={(isGardenTemplate && realGround.ready) ? groundPresetRoughness : (realFloor.ready ? floorPresetRoughness : 0.95)}
             metalness={0}
           />
         </mesh>
@@ -1434,7 +1455,7 @@ return (
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
