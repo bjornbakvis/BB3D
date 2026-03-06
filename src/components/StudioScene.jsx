@@ -384,6 +384,21 @@ function groundPointFromRay(ray) {
   return { x: o.x + d.x * t, z: o.z + d.z * t };
 }
 
+function cameraFacingQuarterTurnDeg(camera, targetY = 0) {
+  // Return a stable 0/90/180/270 rotation so newly placed objects face the user
+  // based on the current camera direction around the room.
+  const dx = camera.position.x;
+  const dz = camera.position.z;
+  const ax = Math.abs(dx);
+  const az = Math.abs(dz);
+
+  if (az >= ax) {
+    return dz >= 0 ? 180 : 0;
+  }
+
+  return dx >= 0 ? 270 : 90;
+}
+
 function Blocks({ objects, selectedId, tool, onObjectClick, onMoveStart, onMove, snapStep, draggingId, setDraggingId, hoverId, setHoverId, setSelectedMesh, roomW, roomD }) {
   // NOTE: we support both (x,z) and (px,py) so we don't break earlier data
   const mapped = useMemo(() => {
@@ -1358,7 +1373,8 @@ return (
             const p = e.point; // THREE.Vector3
             const x0 = snap(p.x, snapStep);
             const z0 = snap(p.z, snapStep);
-            onPlaceAt?.(x0, z0);
+            const rotY0 = cameraFacingQuarterTurnDeg(camera, controlsTargetY);
+            onPlaceAt?.(x0, z0, rotY0);
           }}
           >
           <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
