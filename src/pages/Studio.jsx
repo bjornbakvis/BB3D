@@ -1265,10 +1265,10 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
-                        <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
-                        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
-                        <option value="pbr_granite_grey_tile">Graniet tegel – grijs (PBR)</option>
+                        <option value="pbr_marble_gloss">Marmer – glanzend</option>
+                        <option value="pbr_tile_white_gloss">Tegel – glanzend wit</option>
+                        <option value="pbr_granite_grey_tile">Tegel – grijs (graniet)</option>
+                        <option value="pbr_tile_grey_matte">Tegel – mat grijs</option>
                       </select>
                     </div>
 
@@ -1285,9 +1285,9 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_tile_white_gloss">Wandtegel – glanzend wit (PBR)</option>
-                        <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
-                        <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+                        <option value="pbr_marble_gloss">Marmer – glanzend </option>
+                        <option value="pbr_tile_white_gloss">Tegel – glanzend wit</option>
+                        <option value="pbr_tile_grey_matte">Tegel – mat grijs</option>
                       </select>
                     </div>
                   </div>
