@@ -151,11 +151,11 @@ const REAL_PBR_PRESETS = {
   pbr_tile_white_gloss: {
     label: "Wandtegel – glanzend wit (PBR)",
     paths: {
-      albedo: "/textures/bathroom/tile_white_gloss/albedo.jpg",
-      normal: "/textures/bathroom/tile_white_gloss/normal.jpg",
-      roughness: "/textures/bathroom/tile_white_gloss/roughness.jpg",
+      albedo: "/textures/bathroom/tile_white_gloss/albedo.ktx2",
+      normal: "/textures/bathroom/tile_white_gloss/normal.ktx2",
+      roughness: "/textures/bathroom/tile_white_gloss/roughness.ktx2",
     },
-    tileSizeM: 0.60,
+    tileSizeM: 0.15,
     normalScale: 0.8,
   },
   pbr_tile_grey_matte: {
