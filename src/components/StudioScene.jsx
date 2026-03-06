@@ -1375,6 +1375,7 @@ return (
             const z0 = snap(p.z, snapStep);
             const rotY0 = (cameraFacingQuarterTurnDeg(controlsRef.current?.object || { position: { x: 0, z: -1 } }, controlsTargetY) + 180) % 360;
             onPlaceAt?.(x0, z0, rotY0);
+          }}
           >
           <planeGeometry args={[Math.max(0.5, roomW), Math.max(0.5, roomD)]} />
           <meshStandardMaterial color="#ffffff" transparent opacity={0} depthWrite={false} colorWrite={false} />
