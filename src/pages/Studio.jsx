@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Undo2, Redo2 } from "lucide-react";
+import { Box, Undo2, Redo2, Camera, ChevronDown } from "lucide-react";
 import StudioScene from "../components/StudioScene.jsx";
 
 function nowTime() {
@@ -45,9 +45,11 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
   const [selectedId, setSelectedId] = useState(null);
 
   const [cameraAction, setCameraAction] = useState(null);
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
 
   const requestCamera = (type) => {
     setCameraAction({ type, selectedId, nonce: Date.now() });
+    setCameraMenuOpen(false);
   };
 
   // Undo/Redo (A)
@@ -1061,47 +1063,58 @@ function handlePlaceAt(x, z) {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-center gap-2">
+                      <div className="relative flex items-center justify-center">
                         <button
                           type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("top")}
+                          onClick={() => setCameraMenuOpen((p) => !p)}
+                          className="inline-flex h-10 items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 text-sm font-medium text-black/75 shadow-sm hover:bg-black/5 active:scale-[0.98]"
+                          aria-label="Camera standen"
+                          title="Camera standen"
                         >
-                          Top
+                          <Camera size={16} />
+                          <ChevronDown size={16} className={clsx("transition-transform", cameraMenuOpen ? "rotate-180" : "")} />
                         </button>
 
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("front")}
-                        >
-                          Front
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("iso")}
-                        >
-                          Iso
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                          disabled={!selectedId}
-                          onClick={() => requestCamera("focus")}
-                        >
-                          Focus
-                        </button>
-
-                        <button
-                          type="button"
-                          className="h-8 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 hover:bg-black/5 active:scale-[0.98]"
-                          onClick={() => requestCamera("reset")}
-                        >
-                          Reset
-                        </button>
+                        {cameraMenuOpen && (
+                          <div className="absolute left-1/2 top-full z-20 mt-2 w-40 -translate-x-1/2 rounded-2xl border border-black/10 bg-white p-2 shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => requestCamera("top")}
+                              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-black/75 hover:bg-black/5"
+                            >
+                              Top
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => requestCamera("front")}
+                              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-black/75 hover:bg-black/5"
+                            >
+                              Front
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => requestCamera("iso")}
+                              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-black/75 hover:bg-black/5"
+                            >
+                              Iso
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!selectedId}
+                              onClick={() => requestCamera("focus")}
+                              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-black/75 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Focus
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => requestCamera("reset")}
+                              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-black/75 hover:bg-black/5"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex justify-end gap-2">
