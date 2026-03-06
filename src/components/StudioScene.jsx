@@ -203,9 +203,9 @@ const REAL_PBR_PRESETS = {
   pbr_paving: {
     label: "Terrastegel / bestrating (PBR)",
     paths: {
-      albedo: "/textures/garden/paving/albedo.jpg",
-      normal: "/textures/garden/paving/normal.jpg",
-      roughness: "/textures/garden/paving/roughness.jpg",
+      albedo: "/textures/garden/paving/albedo.ktx2",
+      normal: "/textures/garden/paving/normal.ktx2",
+      roughness: "/textures/garden/paving/roughness.ktx2",
     },
     tileSizeM: 0.60,
     normalScale: 0.8,
