@@ -158,6 +158,8 @@ const REAL_PBR_PRESETS = {
     tileSizeM: 0.15,
     normalScale: 0.8,
     roughnessStrength: 0.22,
+    colorTint: "#ffffff",
+    emissiveStrength: 0.05,
   },
   pbr_tile_grey_matte: {
     label: "Tegel – mat grijs (PBR)",
@@ -854,7 +856,7 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallRoughnessStrength = 0.9, wallOpacity, controlsRef, cameraAction }) {
+function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallRoughnessStrength = 0.9, wallColorTint = "#ffffff", wallEmissiveStrength = 0, wallOpacity, controlsRef, cameraAction }) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -959,7 +961,9 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
       normalMap={wallNormalMap || null}
       roughnessMap={wallRoughnessMap || null}
       normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
-      color="#ffffff"
+      color={wallColorTint}
+      emissive={wallColorTint}
+      emissiveIntensity={wallEmissiveStrength}
       roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
       metalness={0}
       transparent={wallOpacity < 1}
@@ -1340,6 +1344,22 @@ const groundPresetRoughness = useMemo(() => {
   return REAL_PBR_PRESETS[effectiveGroundMaterialId]?.roughnessStrength ?? 0.95;
 }, [effectiveGroundMaterialId]);
 
+const floorPresetColorTint = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveFloorMaterialId]?.colorTint ?? "#ffffff";
+}, [effectiveFloorMaterialId]);
+
+const wallPresetColorTint = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveWallMaterialId]?.colorTint ?? "#ffffff";
+}, [effectiveWallMaterialId]);
+
+const floorPresetEmissiveStrength = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveFloorMaterialId]?.emissiveStrength ?? 0;
+}, [effectiveFloorMaterialId]);
+
+const wallPresetEmissiveStrength = useMemo(() => {
+  return REAL_PBR_PRESETS[effectiveWallMaterialId]?.emissiveStrength ?? 0;
+}, [effectiveWallMaterialId]);
+
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -1413,7 +1433,9 @@ return (
             normalMap={(isGardenTemplate && realGround.ready) ? realGround.normalMap : (realFloor.ready ? realFloor.normalMap : null)}
             roughnessMap={(isGardenTemplate && realGround.ready) ? realGround.roughnessMap : (realFloor.ready ? realFloor.roughnessMap : null)}
             normalScale={(isGardenTemplate && realGround.ready) ? new THREE.Vector2(realGround.normalScale, realGround.normalScale) : (realFloor.ready ? new THREE.Vector2(realFloor.normalScale, realFloor.normalScale) : undefined)}
-            color="#ffffff"
+            color={floorPresetColorTint}
+            emissive={floorPresetColorTint}
+            emissiveIntensity={floorPresetEmissiveStrength}
             roughness={(isGardenTemplate && realGround.ready) ? groundPresetRoughness : (realFloor.ready ? floorPresetRoughness : 0.95)}
             metalness={0}
           />
@@ -1455,7 +1477,7 @@ return (
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallColorTint={wallPresetColorTint} wallEmissiveStrength={wallPresetEmissiveStrength} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
