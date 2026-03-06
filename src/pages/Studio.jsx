@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Undo2, Redo2, Camera, ChevronDown, FolderPlus, Save } from "lucide-react";
+import { Box, Undo2, Redo2, Camera, ChevronDown, FolderPlus, Save, MousePointer2, Plus, Move, Trash2 } from "lucide-react";
 import StudioScene from "../components/StudioScene.jsx";
 
 function nowTime() {
@@ -1188,11 +1188,11 @@ function handlePlaceAt(x, z) {
           <div className="rounded-2xl border border-black/10 bg-white p-4">
             <div className="text-sm font-semibold text-black/80">Tools</div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <ToolButton label="Selecteer" active={tool === "select"} onClick={() => setTool("select")} />
-              <ToolButton label="Plaats object" active={tool === "place"} onClick={() => setTool("place")} />
-              <ToolButton label="Verplaats" active={tool === "move"} onClick={() => setTool("move")} />
-              <ToolButton label="Verwijder" active={tool === "delete"} onClick={() => setTool("delete")} />
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              <ToolButton icon={<MousePointer2 size={18} />} active={tool === "select"} onClick={() => setTool("select")} />
+              <ToolButton icon={<Plus size={18} />} active={tool === "place"} onClick={() => setTool("place")} />
+              <ToolButton icon={<Move size={18} />} active={tool === "move"} onClick={() => setTool("move")} />
+              <ToolButton icon={<Trash2 size={18} />} active={tool === "delete"} onClick={() => setTool("delete")} />
             </div>
 
             {tool === "place" && (
@@ -1406,17 +1406,17 @@ function handlePlaceAt(x, z) {
   );
 }
 
-function ToolButton({ label, active, onClick }) {
+function ToolButton({ icon, active, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={clsx(
-        "w-full rounded-2xl border px-3 py-3 text-center text-sm font-medium shadow-sm",
+        "flex w-full items-center justify-center rounded-2xl border px-3 py-3 shadow-sm",
         active ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/75 hover:bg-black/5"
       )}
     >
-      {label}
+      {icon}
     </button>
   );
 }
