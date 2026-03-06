@@ -839,7 +839,7 @@ if (DEBUG_SNAPS) {
     return { x: nx, y: ny, z: nz };
   }
 
-function handlePlaceAt(x, z) {
+function handlePlaceAt(x, z, rotYFromCamera) {
     if (tool !== "place") return;
     pushUndoSnapshot();
 
@@ -848,6 +848,7 @@ function handlePlaceAt(x, z) {
     const id = `obj_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
 
     const preset = placePreset || defaultBlock;
+    const placeRotY = typeof rotYFromCamera === "number" ? rotYFromCamera : (preset.rotY ?? 0);
 
     // Gebruik altijd de allernieuwste objectenlijst (prev), zodat stapelen/collision direct klopt
     setObjects((prev) => {
@@ -860,7 +861,7 @@ function handlePlaceAt(x, z) {
         w: preset.w,
         d: preset.d,
         h: preset.h,
-        rotY: preset.rotY ?? 0,
+        rotY: placeRotY,
         objectsNow: prev,
       });
 
@@ -879,6 +880,7 @@ function handlePlaceAt(x, z) {
         px,
         py,
         ...preset,
+        rotY: placeRotY,
         id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.presetKey mag niet overschrijven)
         y: placed.y,
       };
