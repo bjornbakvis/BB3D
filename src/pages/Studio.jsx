@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Undo2, Redo2, Camera, ChevronDown } from "lucide-react";
+import { Box, Undo2, Redo2, Camera, ChevronDown, FolderPlus, Save } from "lucide-react";
 import StudioScene from "../components/StudioScene.jsx";
 
 function nowTime() {
@@ -964,16 +964,20 @@ function handlePlaceAt(x, z) {
               <button
                 onClick={newProject}
                 type="button"
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium text-black/80 shadow-sm hover:bg-black/5"
+                title="Nieuw project"
+                aria-label="Nieuw project"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 bg-white text-black/80 shadow-sm hover:bg-black/5"
               >
-                Nieuw project
+                <FolderPlus size={18} />
               </button>
               <button
                 onClick={saveProject}
                 type="button"
-                className="rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white shadow-sm hover:opacity-90"
+                title="Save"
+                aria-label="Save"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-black text-white shadow-sm hover:opacity-90"
               >
-                Save
+                <Save size={18} />
               </button>
             </div>
           </div>
