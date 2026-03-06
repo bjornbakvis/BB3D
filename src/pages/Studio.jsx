@@ -248,6 +248,15 @@ const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogBy
   function newProject() {
     pushUndoSnapshot();
     setProjectName("Nieuw ontwerp");
+    setTemplateId("badkamer");
+    setRoomW(TEMPLATES.badkamer.roomW);
+    setRoomD(TEMPLATES.badkamer.roomD);
+    setWallH(TEMPLATES.badkamer.wallH);
+    setShowWalls(TEMPLATES.badkamer.showWalls);
+    setFloorMaterialId("default");
+    setWallMaterialId("default");
+    setGroundMaterialId("default");
+    setBoundaryMaterialId("default");
     setObjects([]);
     setSelectedId(null);
     setTool("select");
