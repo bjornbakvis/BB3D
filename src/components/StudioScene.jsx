@@ -178,6 +178,16 @@ const REAL_PBR_PRESETS = {
     tileSizeM: 0.80,
     normalScale: 0.5,
   },
+  pbr_granite_grey_tile: {
+    label: "Graniet tegel – grijs (PBR)",
+    paths: {
+      albedo: "/textures/bathroom/granite_grey_tile/albedo.ktx2",
+      normal: "/textures/bathroom/granite_grey_tile/normal.ktx2",
+      roughness: "/textures/bathroom/granite_grey_tile/roughness.ktx2",
+    },
+    tileSizeM: 0.60,
+    normalScale: 0.45,
+  },
 
   // Garden
   pbr_grass: {
