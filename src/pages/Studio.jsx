@@ -1000,7 +1000,7 @@ function handlePlaceAt(x, z) {
     <div className="text-sm font-semibold text-black/80">Ruimte</div>
     
 <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-5 md:items-end">
-  <div className="rounded-2xl border border-black/10 bg-white p-4 md:col-span-1">
+  <div className="md:col-span-1">
     <div className="text-xs font-semibold text-black/70">Template</div>
     <select
       value={templateId}
@@ -1016,6 +1016,7 @@ function handlePlaceAt(x, z) {
   </div>
 
   <LabeledNumber
+    bare
     label="Breedte (m)"
     value={roomW}
     onChange={(v) => {
@@ -1025,6 +1026,7 @@ function handlePlaceAt(x, z) {
     compact
   />
   <LabeledNumber
+    bare
     label="Diepte (m)"
     value={roomD}
     onChange={(v) => {
@@ -1034,6 +1036,7 @@ function handlePlaceAt(x, z) {
     compact
   />
   <LabeledNumber
+    bare
     label="Muurhoogte (m)"
     value={wallH}
     onChange={(v) => {
@@ -1043,7 +1046,7 @@ function handlePlaceAt(x, z) {
     compact
   />
 
-  <div className="rounded-2xl border border-black/10 bg-white p-4">
+  <div>
     <div className="text-xs font-semibold text-black/70">Muren</div>
     <button
       type="button"
