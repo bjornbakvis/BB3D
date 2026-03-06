@@ -1373,7 +1373,7 @@ return (
             const p = e.point; // THREE.Vector3
             const x0 = snap(p.x, snapStep);
             const z0 = snap(p.z, snapStep);
-            const rotY0 = cameraFacingQuarterTurnDeg(camera, controlsTargetY);
+            const rotY0 = cameraFacingQuarterTurnDeg(controlsRef.current?.object || { position: { x: 0, z: -1 } }, controlsTargetY);
             onPlaceAt?.(x0, z0, rotY0);
           }}
           >
