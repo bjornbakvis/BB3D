@@ -1268,6 +1268,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         <option value="pbr_tile_grey_matte">Tegel – mat grijs (PBR)</option>
                         <option value="pbr_tile_white_gloss">Tegel – glanzend wit (PBR)</option>
                         <option value="pbr_marble_gloss">Marmer – glanzend (PBR)</option>
+                        <option value="pbr_granite_grey_tile">Graniet tegel – grijs (PBR)</option>
                       </select>
                     </div>
 
