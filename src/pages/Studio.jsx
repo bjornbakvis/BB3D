@@ -11,6 +11,14 @@ function clsx(...arr) {
   return arr.filter(Boolean).join(" ");
 }
 
+function normalizeTemplateId(id) {
+  if (id === "bathroom") return "badkamer";
+  if (id === "garden") return "tuin";
+  if (id === "empty") return "leeg";
+  if (id === "toilet") return "toilet";
+  return id || "badkamer";
+}
+
 export default function Studio() {
   // Project (stap 2)
   const [projectName, setProjectName] = useState("Nieuw ontwerp");
@@ -25,6 +33,8 @@ export default function Studio() {
   }), []);
 
   const [templateId, setTemplateId] = useState("badkamer");
+  const normalizedTemplateId = normalizeTemplateId(templateId);
+  const isGardenTemplate = normalizedTemplateId === "tuin";
 
 
 // Surface materials (PBR-ready). Defaults keep current look until you choose a PBR option AND add textures in /public/textures.
@@ -70,7 +80,7 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
     undoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
-      templateId,
+      templateId: normalizedTemplateId,
       roomW,
       roomD,
       wallH,
@@ -92,7 +102,7 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
     redoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
-      templateId,
+      templateId: normalizedTemplateId,
       roomW,
       roomD,
       wallH,
@@ -104,7 +114,7 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
     });
     setObjects(prev.objects);
     setSelectedId(prev.selectedId ?? null);
-    setTemplateId(prev.templateId ?? templateId);
+    setTemplateId(normalizeTemplateId(prev.templateId ?? templateId));
     setRoomW(typeof prev.roomW === "number" ? prev.roomW : roomW);
     setRoomD(typeof prev.roomD === "number" ? prev.roomD : roomD);
     setWallH(typeof prev.wallH === "number" ? prev.wallH : wallH);
@@ -124,7 +134,7 @@ setBoundaryMaterialId(prev.boundaryMaterialId ?? boundaryMaterialId);
     undoStackRef.current.push({
       objects: deepClone(objects),
       selectedId,
-      templateId,
+      templateId: normalizedTemplateId,
       roomW,
       roomD,
       wallH,
@@ -136,7 +146,7 @@ setBoundaryMaterialId(prev.boundaryMaterialId ?? boundaryMaterialId);
     });
     setObjects(nxt.objects);
     setSelectedId(nxt.selectedId ?? null);
-    setTemplateId(nxt.templateId ?? templateId);
+    setTemplateId(normalizeTemplateId(nxt.templateId ?? templateId));
     setRoomW(typeof nxt.roomW === "number" ? nxt.roomW : roomW);
     setRoomD(typeof nxt.roomD === "number" ? nxt.roomD : roomD);
     setWallH(typeof nxt.wallH === "number" ? nxt.wallH : wallH);
@@ -221,11 +231,11 @@ setBoundaryMaterialId(nxt.boundaryMaterialId ?? boundaryMaterialId);
 
 // Objectbibliotheek volgt automatisch de gekozen ruimte (professioneel & voorspelbaar)
 const effectiveLibraryTab = useMemo(() => {
-  if (templateId === "badkamer") return "bathroom";
-  if (templateId === "toilet") return "toilet";
-  if (templateId === "tuin" || templateId === "garden") return "garden";
+  if (normalizedTemplateId === "badkamer") return "bathroom";
+  if (normalizedTemplateId === "toilet") return "toilet";
+  if (normalizedTemplateId === "tuin") return "garden";
   return "bathroom";
-}, [templateId]);
+}, [normalizedTemplateId]);
 
 useEffect(() => {
   // Force library tab + default item for the active room
@@ -269,10 +279,11 @@ const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogBy
   }
 
   function applyTemplate(nextId) {
-    const t = TEMPLATES[nextId] || TEMPLATES.badkamer;
+    const normalizedNextId = normalizeTemplateId(nextId);
+    const t = TEMPLATES[normalizedNextId] || TEMPLATES.badkamer;
     pushUndoSnapshot();
 
-    setTemplateId(nextId);
+    setTemplateId(normalizedNextId);
     setRoomW(t.roomW);
     setRoomD(t.roomD);
     setWallH(t.wallH);
@@ -280,7 +291,7 @@ const flatCatalog = useMemo(() => Object.values(catalogByTab).flat(), [catalogBy
 
 
 // Materials: keep it predictable per template
-const isGarden = nextId === "tuin" || nextId === "garden";
+const isGarden = normalizedNextId === "tuin";
 if (isGarden) {
   // Garden uses: ground + boundary only
   setFloorMaterialId("default");
@@ -1005,7 +1016,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
   <div className="md:col-span-1">
     <div className="text-xs font-semibold text-black/70">Template</div>
     <select
-      value={templateId}
+      value={normalizedTemplateId}
       onChange={(e) => applyTemplate(e.target.value)}
       className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm text-black/80 shadow-sm outline-none focus:border-black/20"
     >
@@ -1166,7 +1177,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                     </div>
                     <div className="mt-4 h-[560px] w-full overflow-hidden rounded-3xl border border-black/10 bg-white">
                       <StudioScene
-          templateId={templateId}
+          templateId={normalizedTemplateId}
                                         cameraAction={cameraAction}
         objects={objects}
                         selectedId={selectedId}
@@ -1179,10 +1190,10 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         roomD={roomD}
                         wallH={wallH}
                         showWalls={showWalls}
-                        floorMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : floorMaterialId}
-                        wallMaterialId={(templateId === "tuin" || templateId === "garden") ? "default" : wallMaterialId}
-                        groundMaterialId={(templateId === "tuin" || templateId === "garden") ? groundMaterialId : "default"}
-                        boundaryMaterialId={(templateId === "tuin" || templateId === "garden") ? boundaryMaterialId : "default"}
+                        floorMaterialId={isGardenTemplate ? "default" : floorMaterialId}
+                        wallMaterialId={isGardenTemplate ? "default" : wallMaterialId}
+                        groundMaterialId={isGardenTemplate ? groundMaterialId : "default"}
+                        boundaryMaterialId={isGardenTemplate ? boundaryMaterialId : "default"}
                       />
                     </div>
                       
@@ -1246,11 +1257,11 @@ function handlePlaceAt(x, z, rotYFromCamera) {
               {/* Links: Materialen */}
               <div className="rounded-2xl border border-black/10 bg-white p-4">
                 <div className="text-lg font-semibold">
-                  {templateId === "tuin" || templateId === "garden" ? "Tuinmaterialen" : "Materialen"}
+                  {isGardenTemplate ? "Tuinmaterialen" : "Materialen"}
                 </div>
 
                 {/* Indoor: badkamer/toilet */}
-                {templateId !== "tuin" && templateId !== "garden" && (
+                {!isGardenTemplate && (
                   <div className="mt-4 grid gap-3">
                     <div className="grid grid-cols-[90px_1fr] items-center gap-3">
                       <div className="text-sm font-medium">Vloer</div>
@@ -1294,7 +1305,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                 )}
 
                 {/* Garden: ground + boundary */}
-                {(templateId === "tuin" || templateId === "garden") && (
+                {isGardenTemplate && (
                   <div className="mt-4 grid gap-3">
                     <div className="grid grid-cols-[110px_1fr] items-center gap-3">
                       <div className="text-sm font-medium">Grond</div>
