@@ -407,9 +407,17 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
 }
 
 
+function normalizeTemplateId(templateId) {
+  if (templateId === "bathroom") return "badkamer";
+  if (templateId === "garden") return "tuin";
+  if (templateId === "empty") return "leeg";
+  if (templateId === "toilet") return "toilet";
+  return templateId || "badkamer";
+}
+
 function getThemeConfig(templateId) {
-  const id = templateId || "bathroom";
-  if (id === "garden") {
+  const id = normalizeTemplateId(templateId);
+  if (id === "tuin") {
     return {
       id,
       floor: { c1: "#3f7a45", c2: "#356a3c", squares: 64, tileSize: 0.25 },
@@ -429,7 +437,7 @@ function getThemeConfig(templateId) {
   }
   // bathroom default
   return {
-    id: "bathroom",
+    id: "badkamer",
     floor: { c1: "#e6e6e6", c2: "#dedede", squares: 40, tileSize: 0.3 },
     wall: { c1: "#f4f4f4", c2: "#ececec", squares: 24, tileSize: 0.25, opacity: 0.35 },
     grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.4, sectionThickness: 0.9 },
@@ -1261,7 +1269,7 @@ export default function StudioScene({
   roomD = 6,
   wallH = 2.4,
   showWalls = true,
-  templateId = "bathroom",
+  templateId = "badkamer",
   cameraAction = null,
   // Surface materials (optional; defaults keep current look)
   floorMaterialId = "default",
@@ -1275,9 +1283,10 @@ export default function StudioScene({
   const [hoverId, setHoverId] = useState(null);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const controlsRef = useRef(null);
-  const theme = useMemo(() => getThemeConfig(templateId), [templateId]);
+  const normalizedTemplateId = useMemo(() => normalizeTemplateId(templateId), [templateId]);
+  const theme = useMemo(() => getThemeConfig(normalizedTemplateId), [normalizedTemplateId]);
 
-  const isGardenTemplate = templateId === "tuin" || templateId === "garden";
+  const isGardenTemplate = normalizedTemplateId === "tuin";
 
   // Camera target: indoor rooms look better when we orbit around the room center (wallH/2).
   // Garden/empty stays at y=0.
