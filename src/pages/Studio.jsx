@@ -782,18 +782,34 @@ if (DEBUG_SNAPS) {
       // Candidate snap positions on X (touch faces)
       const touchRight = ox + (oex + ex);
       const touchLeft = ox - (oex + ex);
-      const alignMagnet = 0.08; // orthogonal-axis line-up when objects already edge-snap
+      const alignMagnet = 0.08; // first approach line-up
+      const maintainAlignMagnet = 0.22; // keep line-up helpful while objects are already touching
 
       // Only snap X if we are roughly aligned in Z (overlapping "lane")
       const zOverlap = Math.abs(nz - oz) <= (oez + ez + 0.02);
       if (zOverlap) {
-        if (Math.abs(nx - touchRight) <= objectMagnet) {
+        const touchingRight = Math.abs(nx - touchRight) <= objectMagnet;
+        const touchingLeft = Math.abs(nx - touchLeft) <= objectMagnet;
+
+        if (touchingRight) {
           nx = touchRight;
-          if (Math.abs(nz - oz) <= alignMagnet) nz = oz;
+          if (Math.abs(nz - oz) <= maintainAlignMagnet) nz = oz;
         }
-        if (Math.abs(nx - touchLeft) <= objectMagnet) {
+        if (touchingLeft) {
           nx = touchLeft;
-          if (Math.abs(nz - oz) <= alignMagnet) nz = oz;
+          if (Math.abs(nz - oz) <= maintainAlignMagnet) nz = oz;
+        }
+
+        // First approach: keep the existing line-up feeling crisp when we are already almost on the same row.
+        if (!touchingRight && !touchingLeft && Math.abs(nz - oz) <= alignMagnet) {
+          if (Math.abs(nx - touchRight) <= objectMagnet) {
+            nx = touchRight;
+            nz = oz;
+          }
+          if (Math.abs(nx - touchLeft) <= objectMagnet) {
+            nx = touchLeft;
+            nz = oz;
+          }
         }
       }
 
@@ -803,16 +819,30 @@ if (DEBUG_SNAPS) {
 
       const xOverlap = Math.abs(nx - ox) <= (oex + ex + 0.02);
       if (xOverlap) {
-        if (Math.abs(nz - touchFront) <= objectMagnet) {
+        const touchingFront = Math.abs(nz - touchFront) <= objectMagnet;
+        const touchingBack = Math.abs(nz - touchBack) <= objectMagnet;
+
+        if (touchingFront) {
           nz = touchFront;
-          if (Math.abs(nx - ox) <= alignMagnet) nx = ox;
+          if (Math.abs(nx - ox) <= maintainAlignMagnet) nx = ox;
         }
-        if (Math.abs(nz - touchBack) <= objectMagnet) {
+        if (touchingBack) {
           nz = touchBack;
-          if (Math.abs(nx - ox) <= alignMagnet) nx = ox;
+          if (Math.abs(nx - ox) <= maintainAlignMagnet) nx = ox;
+        }
+
+        // First approach: keep the existing line-up feeling crisp when we are already almost on the same row.
+        if (!touchingFront && !touchingBack && Math.abs(nx - ox) <= alignMagnet) {
+          if (Math.abs(nz - touchFront) <= objectMagnet) {
+            nz = touchFront;
+            nx = ox;
+          }
+          if (Math.abs(nz - touchBack) <= objectMagnet) {
+            nz = touchBack;
+            nx = ox;
+          }
         }
       }
-
       // Hard overlap prevention (resolve overlap deterministically)
       const dx = nx - ox;
       const dz = nz - oz;
