@@ -29,7 +29,7 @@ export default function Studio() {
     badkamer: { label: "Badkamer", roomW: 3.0, roomD: 2.0, wallH: 2.4, showWalls: true },
     toilet: { label: "Toilet", roomW: 1.2, roomD: 1.0, wallH: 2.4, showWalls: true },
     tuin: { label: "Tuin", roomW: 8.0, roomD: 5.0, wallH: 1.2, showWalls: true },
-    leeg: { label: "Lege ruimte", roomW: 6.0, roomD: 6.0, wallH: 2.4, showWalls: false },
+    leeg: { label: "Lege ruimte", roomW: 6.0, roomD: 6.0, wallH: 2.4, showWalls: true },
   }), []);
 
   const [templateId, setTemplateId] = useState("badkamer");
@@ -431,63 +431,73 @@ if (isGarden) {
     if (movingType === "Countertop") {
       const cabinets = others.filter((o) => (o?.type || "") === "Cabinet");
       if (cabinets.length >= 2) {
-        const tolLane = 0.15;   // how strict they must be aligned on Z
+        const tolLane = 0.15;   // how strict they must be aligned on one axis
         const tolAdj = 0.14;    // how strict they must be "next to each other"
         const tolWidth = 0.08;  // width match tolerance (meters)
         const tolNear = 0.45;   // how close countertop must be to trigger snap
 
-        // For now: only support rotY ~ 0 to avoid confusing snaps for rotated slabs.
-        if (Math.abs(((rotY || 0) % 360 + 360) % 360) < 0.5 || Math.abs((((rotY || 0) % 360 + 360) % 360) - 180) < 0.5) {
-          // Try all pairs and pick the best candidate (closest snap).
-          let bestPair = null;
-          let bestDist2 = Infinity;
+        // Try all pairs and pick the best candidate (closest snap).
+        // Stability-first: support both cabinet rows on X and cabinet rows on Z,
+        // and allow the countertop to auto-align to the pair axis when the snap triggers.
+        let bestPair = null;
+        let bestDist2 = Infinity;
 
-          for (let i = 0; i < cabinets.length; i++) {
-            for (let j = i + 1; j < cabinets.length; j++) {
-              const a = cabinets[i];
-              const b = cabinets[j];
+        for (let i = 0; i < cabinets.length; i++) {
+          for (let j = i + 1; j < cabinets.length; j++) {
+            const a = cabinets[i];
+            const b = cabinets[j];
 
-              const ax = Number(a.x ?? 0), az = Number(a.z ?? 0), ay = Number(a.y ?? 0);
-              const bx = Number(b.x ?? 0), bz = Number(b.z ?? 0), by = Number(b.y ?? 0);
-              const aw = Number(a.w ?? 0), ad = Number(a.d ?? 0), ah = Number(a.h ?? 0);
-              const bw = Number(b.w ?? 0), bd = Number(b.d ?? 0), bh = Number(b.h ?? 0);
+            const ax = Number(a.x ?? 0), az = Number(a.z ?? 0), ay = Number(a.y ?? 0);
+            const bx = Number(b.x ?? 0), bz = Number(b.z ?? 0), by = Number(b.y ?? 0);
+            const aw = Number(a.w ?? 0), ad = Number(a.d ?? 0), ah = Number(a.h ?? 0);
+            const bw = Number(b.w ?? 0), bd = Number(b.d ?? 0), bh = Number(b.h ?? 0);
 
-              // Must be on same "row" (Z) and same top height (Y)
-              const topA = ay + ah;
-              const topB = by + bh;
-              if (!near(az, bz, tolLane)) continue;
-              if (!near(topA, topB, 0.04)) continue;
+            const topA = ay + ah;
+            const topB = by + bh;
+            if (!near(topA, topB, 0.04)) continue;
 
-              // Must be adjacent on X (side-by-side), not overlapping too much, not far apart.
+            const cx = (ax + bx) / 2;
+            const cz = (az + bz) / 2;
+            const cy = Math.max(topA, topB);
+            const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+            if (d2 > tolNear * tolNear) continue;
+
+            const sameZLane = near(az, bz, tolLane);
+            const sameXLane = near(ax, bx, tolLane);
+
+            if (sameZLane) {
               const centerDx = Math.abs(ax - bx);
               const wantDx = (aw / 2) + (bw / 2);
-              if (!near(centerDx, wantDx, tolAdj)) continue;
-
-              // Width match: countertop width should match sum of cabinet widths
               const sumW = aw + bw;
+              if (!near(centerDx, wantDx, tolAdj)) continue;
               if (Math.abs(w - sumW) > tolWidth) continue;
-
-              // Candidate snap position: midpoint between cabinets, same Z lane, and on top.
-              const cx = (ax + bx) / 2;
-              const cz = (az + bz) / 2;
-              const cy = Math.max(topA, topB);
-
-              // Only trigger if countertop is near this candidate
-              const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
-              if (d2 > tolNear * tolNear) continue;
 
               if (d2 < bestDist2) {
                 bestDist2 = d2;
-                bestPair = { x: cx, z: cz, y: cy };
+                bestPair = { x: cx, z: cz, y: cy, rotY: 0 };
+              }
+              continue;
+            }
+
+            if (sameXLane) {
+              const centerDz = Math.abs(az - bz);
+              const wantDz = (ad / 2) + (bd / 2);
+              const sumD = ad + bd;
+              if (!near(centerDz, wantDz, tolAdj)) continue;
+              if (Math.abs(w - sumD) > tolWidth) continue;
+
+              if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestPair = { x: cx, z: cz, y: cy, rotY: 90 };
               }
             }
           }
+        }
 
-          if (bestPair) {
-            // De uiteindelijke "stack" beslissing gebeurt lager in de stacking-sectie.
-            // We geven hier alleen een voorstel door.
-            snapCandidate = { x: bestPair.x, z: bestPair.z, y: bestPair.y, reason: "countertop_on_two_cabinets" };
-          }
+        if (bestPair) {
+          // De uiteindelijke "stack" beslissing gebeurt lager in de stacking-sectie.
+          // We geven hier alleen een voorstel door.
+          snapCandidate = { x: bestPair.x, z: bestPair.z, y: bestPair.y, rotY: bestPair.rotY, reason: "countertop_on_two_cabinets" };
         }
       }
     }
@@ -852,7 +862,7 @@ if (DEBUG_SNAPS) {
       }
     }
 
-    return { x: nx, y: ny, z: nz };
+    return { x: nx, y: ny, z: nz, rotY: snapCandidate?.rotY };
   }
 
 function handlePlaceAt(x, z, rotYFromCamera) {
@@ -896,7 +906,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
         px,
         py,
         ...preset,
-        rotY: placeRotY,
+        rotY: typeof placed.rotY === "number" ? placed.rotY : placeRotY,
         id, // ✅ zorg dat elk geplaatst item een unieke id houdt (preset.presetKey mag niet overschrijven)
         y: placed.y,
       };
@@ -939,7 +949,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
       const px = clamp(0.5 + cx / Math.max(0.0001, roomW), 0, 1);
       const py = clamp(0.5 + cz / Math.max(0.0001, roomD), 0, 1);
 
-      return prev.map((o) => (o.id === id ? { ...o, x: cx, y: moved.y ?? (o.y ?? 0), z: cz, px, py } : o));
+      return prev.map((o) => (o.id === id ? { ...o, x: cx, y: moved.y ?? (o.y ?? 0), z: cz, px, py, rotY: typeof moved.rotY === "number" ? moved.rotY : (o.rotY ?? 0) } : o));
     });
   }
 
@@ -1199,6 +1209,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         wallMaterialId={isGardenTemplate ? "default" : wallMaterialId}
                         groundMaterialId={isGardenTemplate ? groundMaterialId : "default"}
                         boundaryMaterialId={isGardenTemplate ? boundaryMaterialId : "default"}
+                        snapStep={0.01}
                       />
                     </div>
                       
