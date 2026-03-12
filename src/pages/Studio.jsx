@@ -782,12 +782,19 @@ if (DEBUG_SNAPS) {
       // Candidate snap positions on X (touch faces)
       const touchRight = ox + (oex + ex);
       const touchLeft = ox - (oex + ex);
+      const alignMagnet = 0.08; // orthogonal-axis line-up when objects already edge-snap
 
       // Only snap X if we are roughly aligned in Z (overlapping "lane")
       const zOverlap = Math.abs(nz - oz) <= (oez + ez + 0.02);
       if (zOverlap) {
-        if (Math.abs(nx - touchRight) <= objectMagnet) nx = touchRight;
-        if (Math.abs(nx - touchLeft) <= objectMagnet) nx = touchLeft;
+        if (Math.abs(nx - touchRight) <= objectMagnet) {
+          nx = touchRight;
+          if (Math.abs(nz - oz) <= alignMagnet) nz = oz;
+        }
+        if (Math.abs(nx - touchLeft) <= objectMagnet) {
+          nx = touchLeft;
+          if (Math.abs(nz - oz) <= alignMagnet) nz = oz;
+        }
       }
 
       // Candidate snap positions on Z
@@ -796,8 +803,14 @@ if (DEBUG_SNAPS) {
 
       const xOverlap = Math.abs(nx - ox) <= (oex + ex + 0.02);
       if (xOverlap) {
-        if (Math.abs(nz - touchFront) <= objectMagnet) nz = touchFront;
-        if (Math.abs(nz - touchBack) <= objectMagnet) nz = touchBack;
+        if (Math.abs(nz - touchFront) <= objectMagnet) {
+          nz = touchFront;
+          if (Math.abs(nx - ox) <= alignMagnet) nx = ox;
+        }
+        if (Math.abs(nz - touchBack) <= objectMagnet) {
+          nz = touchBack;
+          if (Math.abs(nx - ox) <= alignMagnet) nx = ox;
+        }
       }
 
       // Hard overlap prevention (resolve overlap deterministically)
