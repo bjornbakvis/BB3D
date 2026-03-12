@@ -420,7 +420,7 @@ function getThemeConfig(templateId) {
   if (id === "tuin") {
     return {
       id,
-      floor: { c1: "#3f7a45", c2: "#356a3c", squares: 64, tileSize: 0.25 },
+      floor: { c1: "#f5f5f5", c2: "#eeeeee", squares: 64, tileSize: 0.25 },
       wall: { c1: "#d9d9d9", c2: "#cfcfcf", squares: 24, tileSize: 0.6, opacity: 0.25 },
       grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.35, sectionThickness: 0.75 },
       light: { ambient: 0.7, sun: 1.05 },
