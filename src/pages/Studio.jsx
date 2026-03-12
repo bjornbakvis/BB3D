@@ -67,6 +67,8 @@ const [boundaryMaterialId, setBoundaryMaterialId] = useState("default");
   const redoStackRef = useRef([]); // stack of {objects, selectedId}
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const undoRef = useRef(() => {});
+  const redoRef = useRef(() => {});
 
   function deepClone(v) {
     // Stability: prefer structuredClone when available (keeps numbers/arrays safer & faster).
@@ -159,6 +161,9 @@ setBoundaryMaterialId(nxt.boundaryMaterialId ?? boundaryMaterialId);
     setCanRedo(redoStackRef.current.length > 0);
   }
 
+  undoRef.current = undo;
+  redoRef.current = redo;
+
   // Keyboard shortcuts: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y
   useEffect(() => {
     function onKeyDown(e) {
@@ -170,23 +175,23 @@ setBoundaryMaterialId(nxt.boundaryMaterialId ?? boundaryMaterialId);
 
       if (key === "z" && e.shiftKey) {
         e.preventDefault();
-        redo();
+        redoRef.current();
         return;
       }
       if (key === "z") {
         e.preventDefault();
-        undo();
+        undoRef.current();
         return;
       }
       if (key === "y") {
         e.preventDefault();
-        redo();
+        redoRef.current();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [objects, selectedId]);
+  }, []);
 
   // Default “block” dat we plaatsen
   const defaultBlock = useMemo(
