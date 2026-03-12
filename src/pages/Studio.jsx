@@ -451,6 +451,10 @@ if (isGarden) {
             const bx = Number(b.x ?? 0), bz = Number(b.z ?? 0), by = Number(b.y ?? 0);
             const aw = Number(a.w ?? 0), ad = Number(a.d ?? 0), ah = Number(a.h ?? 0);
             const bw = Number(b.w ?? 0), bd = Number(b.d ?? 0), bh = Number(b.h ?? 0);
+            const { ex: aex, ez: aez } = rotatedExtents(aw, ad, a.rotY);
+            const { ex: bex, ez: bez } = rotatedExtents(bw, bd, b.rotY);
+            const targetSpanX = 2 * rotatedExtents(w, d, 0).ex;
+            const targetSpanZ = 2 * rotatedExtents(w, d, 90).ez;
 
             const topA = ay + ah;
             const topB = by + bh;
@@ -467,10 +471,10 @@ if (isGarden) {
 
             if (sameZLane) {
               const centerDx = Math.abs(ax - bx);
-              const wantDx = (aw / 2) + (bw / 2);
-              const sumW = aw + bw;
+              const wantDx = aex + bex;
+              const sumSpanX = (2 * aex) + (2 * bex);
               if (!near(centerDx, wantDx, tolAdj)) continue;
-              if (Math.abs(w - sumW) > tolWidth) continue;
+              if (Math.abs(targetSpanX - sumSpanX) > tolWidth) continue;
 
               if (d2 < bestDist2) {
                 bestDist2 = d2;
@@ -481,10 +485,10 @@ if (isGarden) {
 
             if (sameXLane) {
               const centerDz = Math.abs(az - bz);
-              const wantDz = (ad / 2) + (bd / 2);
-              const sumD = ad + bd;
+              const wantDz = aez + bez;
+              const sumSpanZ = (2 * aez) + (2 * bez);
               if (!near(centerDz, wantDz, tolAdj)) continue;
-              if (Math.abs(w - sumD) > tolWidth) continue;
+              if (Math.abs(targetSpanZ - sumSpanZ) > tolWidth) continue;
 
               if (d2 < bestDist2) {
                 bestDist2 = d2;
@@ -507,15 +511,15 @@ if (isGarden) {
     if (movingType === "Countertop" && !snapCandidate) {
       const cabinets = others.filter((o) => (o?.type || "") === "Cabinet");
       if (cabinets.length > 0) {
-        const tolLane = 0.18;   // uitlijning op Z
-        const tolWidth = 0.08;  // breedte match tolerance (meters)
-        const tolNear = 0.55;   // hoe dichtbij om te triggeren
+        const tolLane = 0.18;
+        const tolWidth = 0.08;
+        const tolNear = 0.55;
 
-        // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
         const rot = (((rotY || 0) % 360) + 360) % 360;
-        const rotOk = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
+        const axisX = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
+        const axisZ = Math.abs(rot - 90) < 0.5 || Math.abs(rot - 270) < 0.5;
 
-        if (rotOk) {
+        if (axisX || axisZ) {
           let best = null;
           let bestDist2 = Infinity;
 
@@ -524,17 +528,16 @@ if (isGarden) {
             const cz = Number(c.z ?? 0);
             const cy = Number(c.y ?? 0);
             const ch = Number(c.h ?? 0);
+            const { ex: cex, ez: cez } = rotatedExtents(c.w, c.d, c.rotY);
 
-            // Cabinet extents (respecteer rotatie)
-            const { ex: cex } = rotatedExtents(c.w, c.d, c.rotY);
+            if (axisX) {
+              if (Math.abs(cz - nz) > tolLane) continue;
+              if (Math.abs(cex - ex) > tolWidth) continue;
+            } else {
+              if (Math.abs(cx - nx) > tolLane) continue;
+              if (Math.abs(cez - ez) > tolWidth) continue;
+            }
 
-            // Cabinet moet in dezelfde rij liggen (Z) zodat het logisch voelt
-            if (Math.abs(cz - nz) > tolLane) continue;
-
-            // Breedte match: blad.w ≈ cabinet.w (we gebruiken extents zodat rotatie geen rare surprises geeft)
-            if (Math.abs(cex - ex) > tolWidth) continue;
-
-            // Trigger alleen als je in de buurt bent
             const d2 = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
             if (d2 > tolNear * tolNear) continue;
 
@@ -559,75 +562,87 @@ if (isGarden) {
     if (movingType === "Sink") {
       const countertops = others.filter((o) => (o?.type || "") === "Countertop");
       if (countertops.length > 0) {
-        const tolNear = 0.55;        // hoe dichtbij je moet zijn om te snappen (meters)
-        const tolFit = 0.04;         // kleine tolerantie zodat het niet te streng is
-        const zCapture = 0.40;       // hoe strak op Z we willen "pakken" (midden van het blad)
-        const xLaneCapture = 0.55;   // hoe ver van het midden we nog meerekenen voor links/rechts
+        const tolNear = 0.55;
+        const tolFit = 0.04;
+        const centerCapture = 0.40;
+        const laneCapture = 0.55;
 
-        // Alleen bij 0° / 180° (in graden) om onverwachte snaps te voorkomen.
-        const rot = (((rotY || 0) % 360) + 360) % 360;
-        const rotOk = Math.abs(rot) < 0.5 || Math.abs(rot - 180) < 0.5;
+        let best = null;
+        let bestDist2 = Infinity;
 
-        if (rotOk) {
-          let best = null;
-          let bestDist2 = Infinity;
+        for (const c of countertops) {
+          const cx = Number(c.x ?? 0);
+          const cz = Number(c.z ?? 0);
+          const cy = Number(c.y ?? 0);
+          const ch = Number(c.h ?? 0);
 
-          for (const c of countertops) {
-            const cx = Number(c.x ?? 0);
-            const cz = Number(c.z ?? 0);
-            const cy = Number(c.y ?? 0);
-            const ch = Number(c.h ?? 0);
+          const { ex: cex, ez: cez } = rotatedExtents(c.w, c.d, c.rotY);
 
-            const { ex: cex, ez: cez } = rotatedExtents(c.w, c.d, c.rotY);
+          if (cex + tolFit < ex || cez + tolFit < ez) continue;
 
-            // Past de wastafel binnen het blad?
-            if (cex + tolFit < ex || cez + tolFit < ez) continue;
+          const d2center = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
+          if (d2center > tolNear * tolNear) continue;
 
-            // Dichtbij genoeg (globaal)
-            const d2center = (nx - cx) * (nx - cx) + (nz - cz) * (nz - cz);
-            if (d2center > tolNear * tolNear) continue;
+          const crot = (((Number(c.rotY || 0) % 360) + 360) % 360);
+          const axisX = Math.abs(crot) < 0.5 || Math.abs(crot - 180) < 0.5;
+          const axisZ = Math.abs(crot - 90) < 0.5 || Math.abs(crot - 270) < 0.5;
+          if (!axisX && !axisZ) continue;
 
-            // We houden Z netjes in het midden (voor nu).
-            if (Math.abs(nz - cz) > zCapture) continue;
+          let targetX = cx;
+          let targetZ = cz;
+          let reason = "sink_on_countertop_center";
 
-            // Links / Midden / Rechts ankers (in wereld X, want rotOk beperkt tot 0/180)
-            // Zorgt dat de wastafel binnen het blad blijft.
+          if (axisX) {
+            if (Math.abs(nz - cz) > centerCapture) continue;
+
             const maxOffsetX = Math.max(0, cex - ex);
+            const allowLeftRight = maxOffsetX >= 0.14;
+            const leftX = cx - maxOffsetX;
+            const centerX = cx;
+            const rightX = cx + maxOffsetX;
+            const split = allowLeftRight ? Math.max(0.10, maxOffsetX * 0.5) : 999;
 
-// Als het blad maar nét breder is dan de wastafel (bv. 60cm meubel),
-// dan voelt links/rechts "springen" onprofessioneel. In dat geval: alleen midden snap.
-const allowLeftRight = maxOffsetX >= 0.14;
-
-const leftX = cx - maxOffsetX;
-const centerX = cx;
-const rightX = cx + maxOffsetX;
-
-// Kies target op basis van waar de gebruiker naartoe sleept (nx).
-const split = allowLeftRight ? Math.max(0.10, maxOffsetX * 0.5) : 999;
-            let targetX = centerX;
-            let reason = "sink_on_countertop_center";
-
-            if (nx < cx - split && Math.abs(nx - leftX) <= xLaneCapture) {
+            if (nx < cx - split && Math.abs(nx - leftX) <= laneCapture) {
               targetX = leftX;
               reason = "sink_on_countertop_left";
-            } else if (nx > cx + split && Math.abs(nx - rightX) <= xLaneCapture) {
+            } else if (nx > cx + split && Math.abs(nx - rightX) <= laneCapture) {
               targetX = rightX;
               reason = "sink_on_countertop_right";
             } else {
               targetX = centerX;
               reason = "sink_on_countertop_center";
             }
+          } else {
+            if (Math.abs(nx - cx) > centerCapture) continue;
 
-            const d2 = (nx - targetX) * (nx - targetX) + (nz - cz) * (nz - cz);
-            if (d2 < bestDist2) {
-              bestDist2 = d2;
-              best = { x: targetX, z: cz, y: cy + ch, reason };
+            const maxOffsetZ = Math.max(0, cez - ez);
+            const allowLeftRight = maxOffsetZ >= 0.14;
+            const leftZ = cz - maxOffsetZ;
+            const centerZ = cz;
+            const rightZ = cz + maxOffsetZ;
+            const split = allowLeftRight ? Math.max(0.10, maxOffsetZ * 0.5) : 999;
+
+            if (nz < cz - split && Math.abs(nz - leftZ) <= laneCapture) {
+              targetZ = leftZ;
+              reason = "sink_on_countertop_left";
+            } else if (nz > cz + split && Math.abs(nz - rightZ) <= laneCapture) {
+              targetZ = rightZ;
+              reason = "sink_on_countertop_right";
+            } else {
+              targetZ = centerZ;
+              reason = "sink_on_countertop_center";
             }
           }
 
-          if (best) {
-            snapCandidate = { x: best.x, z: best.z, y: best.y, reason: best.reason };
+          const d2 = (nx - targetX) * (nx - targetX) + (nz - targetZ) * (nz - targetZ);
+          if (d2 < bestDist2) {
+            bestDist2 = d2;
+            best = { x: targetX, z: targetZ, y: cy + ch, reason };
           }
+        }
+
+        if (best) {
+          snapCandidate = { x: best.x, z: best.z, y: best.y, reason: best.reason };
         }
       }
     }
