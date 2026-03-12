@@ -765,6 +765,19 @@ if (DEBUG_SNAPS) {
       return !(ny + nh <= oy + eps || ny >= oy + oh - eps);
     };
 
+    const alignMagnet = 0.10; // first approach line-up
+    const maintainAlignMagnet = 0.35; // keep line-up stronger while objects are already touching
+    let bestObjectSnap = null;
+    let bestObjectSnapScore = Infinity;
+
+    const considerObjectSnap = (candidate) => {
+      if (!candidate) return;
+      if (candidate.score < bestObjectSnapScore) {
+        bestObjectSnapScore = candidate.score;
+        bestObjectSnap = candidate;
+      }
+    };
+
     for (const o of others) {
       const ox = Number(o.x ?? 0);
       const oz = Number(o.z ?? 0);
@@ -782,33 +795,36 @@ if (DEBUG_SNAPS) {
       // Candidate snap positions on X (touch faces)
       const touchRight = ox + (oex + ex);
       const touchLeft = ox - (oex + ex);
-      const alignMagnet = 0.08; // first approach line-up
-      const maintainAlignMagnet = 0.22; // keep line-up helpful while objects are already touching
+      const zDelta = Math.abs(nz - oz);
+      const zOverlap = zDelta <= (oez + ez + 0.02);
 
-      // Only snap X if we are roughly aligned in Z (overlapping "lane")
-      const zOverlap = Math.abs(nz - oz) <= (oez + ez + 0.02);
       if (zOverlap) {
-        const touchingRight = Math.abs(nx - touchRight) <= objectMagnet;
-        const touchingLeft = Math.abs(nx - touchLeft) <= objectMagnet;
+        const rightDelta = Math.abs(nx - touchRight);
+        const leftDelta = Math.abs(nx - touchLeft);
+        const canAlignZ = zDelta <= maintainAlignMagnet;
+        const crispAlignZ = zDelta <= alignMagnet;
 
-        if (touchingRight) {
-          nx = touchRight;
-          if (Math.abs(nz - oz) <= maintainAlignMagnet) nz = oz;
+        if (rightDelta <= objectMagnet) {
+          considerObjectSnap({
+            x: touchRight,
+            z: canAlignZ ? oz : nz,
+            score: rightDelta + (canAlignZ ? zDelta * 0.25 : 0.5 + zDelta),
+          });
         }
-        if (touchingLeft) {
-          nx = touchLeft;
-          if (Math.abs(nz - oz) <= maintainAlignMagnet) nz = oz;
+        if (leftDelta <= objectMagnet) {
+          considerObjectSnap({
+            x: touchLeft,
+            z: canAlignZ ? oz : nz,
+            score: leftDelta + (canAlignZ ? zDelta * 0.25 : 0.5 + zDelta),
+          });
         }
 
-        // First approach: keep the existing line-up feeling crisp when we are already almost on the same row.
-        if (!touchingRight && !touchingLeft && Math.abs(nz - oz) <= alignMagnet) {
-          if (Math.abs(nx - touchRight) <= objectMagnet) {
-            nx = touchRight;
-            nz = oz;
+        if (crispAlignZ) {
+          if (rightDelta <= objectMagnet) {
+            considerObjectSnap({ x: touchRight, z: oz, score: rightDelta + zDelta * 0.1 });
           }
-          if (Math.abs(nx - touchLeft) <= objectMagnet) {
-            nx = touchLeft;
-            nz = oz;
+          if (leftDelta <= objectMagnet) {
+            considerObjectSnap({ x: touchLeft, z: oz, score: leftDelta + zDelta * 0.1 });
           }
         }
       }
@@ -816,33 +832,60 @@ if (DEBUG_SNAPS) {
       // Candidate snap positions on Z
       const touchFront = oz + (oez + ez);
       const touchBack = oz - (oez + ez);
+      const xDelta = Math.abs(nx - ox);
+      const xOverlap = xDelta <= (oex + ex + 0.02);
 
-      const xOverlap = Math.abs(nx - ox) <= (oex + ex + 0.02);
       if (xOverlap) {
-        const touchingFront = Math.abs(nz - touchFront) <= objectMagnet;
-        const touchingBack = Math.abs(nz - touchBack) <= objectMagnet;
+        const frontDelta = Math.abs(nz - touchFront);
+        const backDelta = Math.abs(nz - touchBack);
+        const canAlignX = xDelta <= maintainAlignMagnet;
+        const crispAlignX = xDelta <= alignMagnet;
 
-        if (touchingFront) {
-          nz = touchFront;
-          if (Math.abs(nx - ox) <= maintainAlignMagnet) nx = ox;
+        if (frontDelta <= objectMagnet) {
+          considerObjectSnap({
+            x: canAlignX ? ox : nx,
+            z: touchFront,
+            score: frontDelta + (canAlignX ? xDelta * 0.25 : 0.5 + xDelta),
+          });
         }
-        if (touchingBack) {
-          nz = touchBack;
-          if (Math.abs(nx - ox) <= maintainAlignMagnet) nx = ox;
+        if (backDelta <= objectMagnet) {
+          considerObjectSnap({
+            x: canAlignX ? ox : nx,
+            z: touchBack,
+            score: backDelta + (canAlignX ? xDelta * 0.25 : 0.5 + xDelta),
+          });
         }
 
-        // First approach: keep the existing line-up feeling crisp when we are already almost on the same row.
-        if (!touchingFront && !touchingBack && Math.abs(nx - ox) <= alignMagnet) {
-          if (Math.abs(nz - touchFront) <= objectMagnet) {
-            nz = touchFront;
-            nx = ox;
+        if (crispAlignX) {
+          if (frontDelta <= objectMagnet) {
+            considerObjectSnap({ x: ox, z: touchFront, score: frontDelta + xDelta * 0.1 });
           }
-          if (Math.abs(nz - touchBack) <= objectMagnet) {
-            nz = touchBack;
-            nx = ox;
+          if (backDelta <= objectMagnet) {
+            considerObjectSnap({ x: ox, z: touchBack, score: backDelta + xDelta * 0.1 });
           }
         }
       }
+    }
+
+    if (bestObjectSnap) {
+      nx = clamp(bestObjectSnap.x, minX, maxX);
+      nz = clamp(bestObjectSnap.z, minZ, maxZ);
+    }
+
+    for (const o of others) {
+      const ox = Number(o.x ?? 0);
+      const oz = Number(o.z ?? 0);
+      const oy = Number(o.y ?? 0);
+      const oh = Number(o.h ?? 0);
+
+      // Alleen botsing voorkomen als we ook écht op dezelfde hoogte zitten.
+      // (Als je stapelt, mogen de X/Z footprints overlappen, want Y is anders.)
+      if (!yOverlaps(oy, oh)) continue;
+      const ow = Number(o.w || 1);
+      const od = Number(o.d || 1);
+      const orot = Number(o.rotY || 0);
+      const { ex: oex, ez: oez } = rotatedExtents(ow, od, orot);
+
       // Hard overlap prevention (resolve overlap deterministically)
       const dx = nx - ox;
       const dz = nz - oz;
