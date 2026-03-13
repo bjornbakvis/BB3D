@@ -217,9 +217,9 @@ export const REAL_PBR_PRESETS = {
     label: "Houten vloer (PBR)",
     ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
     paths: {
-      albedo: "/textures/wood_floor/albedo.ktx2",
-      normal: "/textures/wood_floor/normal.ktx2",
-      roughness: "/textures/wood_floor/roughness.ktx2",
+      albedo: "/textures/bathroom/wood_floor/albedo.ktx2",
+      normal: "/textures/bathroom/wood_floor/normal.ktx2",
+      roughness: "/textures/bathroom/wood_floor/roughness.ktx2",
     },
     tileSizeM: 0.25,
     normalScale: 0.6,
