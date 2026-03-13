@@ -146,51 +146,34 @@ function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
  * public/textures/bathroom/tile_white_gloss/normal.jpg
  * public/textures/bathroom/tile_white_gloss/roughness.jpg
  */
-export const REAL_PBR_PRESETS = {
+const REAL_PBR_PRESETS = {
   // Bathroom / toilet
   pbr_tile_white_gloss: {
     label: "Wandtegel – glanzend wit (PBR)",
-    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/tile_white_gloss/albedo.ktx2",
       normal: "/textures/bathroom/tile_white_gloss/normal.ktx2",
       roughness: "/textures/bathroom/tile_white_gloss/roughness.ktx2",
     },
-    tileSizeM: 0.60,
-    normalScale: 0.4,
-    roughnessStrength: 0.75,
+    tileSizeM: 0.15,
+    normalScale: 0.8,
+    roughnessStrength: 0.22,
     colorTint: "#ffffff",
-    emissiveStrength: 0.10,
+    emissiveStrength: 0.05,
   },
   pbr_tile_grey_matte: {
     label: "Tegel – mat grijs (PBR)",
-    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
-      albedo: "/textures/bathroom/tile_grey_matte/albedo.ktx2",
-      normal: "/textures/bathroom/tile_grey_matte/normal.ktx2",
-      roughness: "/textures/bathroom/tile_grey_matte/roughness.ktx2",
+      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
+      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
+      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
     },
     tileSizeM: 0.60,
     normalScale: 0.7,
     roughnessStrength: 0.95,
   },
-  pbr_tile_blue_gloss: {
-    label: "Tegel – blauw (PBR)",
-    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
-    paths: {
-      albedo: "/textures/bathroom/tile_blue_gloss/albedo.ktx2",
-      normal: "/textures/bathroom/tile_blue_gloss/normal.ktx2",
-      roughness: "/textures/bathroom/tile_blue_gloss/roughness.ktx2",
-    },
-    tileSizeM: 0.60,
-    normalScale: 0.45,
-    roughnessStrength: 0.78,
-    colorTint: "#ffffff",
-    emissiveStrength: 0.04,
-  },
   pbr_marble_gloss: {
     label: "Marmer – glanzend (PBR)",
-    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/marble_gloss/albedo.jpg",
       normal: "/textures/bathroom/marble_gloss/normal.jpg",
@@ -202,7 +185,6 @@ export const REAL_PBR_PRESETS = {
   },
   pbr_granite_grey_tile: {
     label: "Graniet tegel – grijs (PBR)",
-    ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/granite_grey_tile/albedo.ktx2",
       normal: "/textures/bathroom/granite_grey_tile/normal.ktx2",
@@ -213,23 +195,9 @@ export const REAL_PBR_PRESETS = {
     roughnessStrength: 0.6,
   },
 
-  pbr_wood_floor: {
-    label: "Houten vloer (PBR)",
-    ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
-    paths: {
-      albedo: "/textures/bathroom/wood_floor/albedo.ktx2",
-      normal: "/textures/bathroom/wood_floor/normal.ktx2",
-      roughness: "/textures/bathroom/wood_floor/roughness.ktx2",
-    },
-    tileSizeM: 0.25,
-    normalScale: 0.6,
-    roughnessStrength: 0.9,
-  },
-
   // Garden
   pbr_grass: {
     label: "Gras (PBR)",
-    ui: { surface: ["ground"], templates: ["tuin"] },
     paths: {
       albedo: "/textures/garden/grass/albedo.ktx2",
       normal: "/textures/garden/grass/normal.ktx2",
@@ -241,7 +209,6 @@ export const REAL_PBR_PRESETS = {
   },
   pbr_paving: {
     label: "Terrastegel / bestrating (PBR)",
-    ui: { surface: ["ground"], templates: ["tuin"] },
     paths: {
       albedo: "/textures/garden/paving/albedo.ktx2",
       normal: "/textures/garden/paving/normal.ktx2",
@@ -255,7 +222,6 @@ export const REAL_PBR_PRESETS = {
 // Garden boundaries (terrain separation) - add your own CC0 textures here
 pbr_boundary_fence_wood: {
   label: "Schutting hout (PBR)",
-  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/fence_wood/albedo.jpg",
     normal: "/textures/garden/boundary/fence_wood/normal.jpg",
@@ -266,7 +232,6 @@ pbr_boundary_fence_wood: {
 },
 pbr_boundary_hedge: {
   label: "Haag / begroeiing (PBR)",
-  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/hedge/albedo.jpg",
     normal: "/textures/garden/boundary/hedge/normal.jpg",
@@ -277,7 +242,6 @@ pbr_boundary_hedge: {
 },
 pbr_boundary_concrete: {
   label: "Muur / beton (PBR)",
-  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/concrete/albedo.jpg",
     normal: "/textures/garden/boundary/concrete/normal.jpg",
@@ -288,29 +252,19 @@ pbr_boundary_concrete: {
 },
 };
 
-function normalizeMaterialTemplateId(id) {
-  if (id === "bathroom") return "badkamer";
-  if (id === "garden") return "tuin";
-  if (id === "empty") return "leeg";
-  if (id === "toilet") return "toilet";
-  return id || "badkamer";
-}
-
-export function getMaterialOptions({ surface, templateId }) {
-  const normalizedTemplateId = normalizeMaterialTemplateId(templateId);
-  return Object.entries(REAL_PBR_PRESETS)
-    .filter(([, preset]) => {
-      const ui = preset?.ui;
-      if (!ui) return false;
-      const surfaces = Array.isArray(ui.surface) ? ui.surface : [ui.surface];
-      const templates = Array.isArray(ui.templates) ? ui.templates : [ui.templates];
-      return surfaces.includes(surface) && templates.includes(normalizedTemplateId);
-    })
-    .map(([value, preset]) => ({ value, label: preset.label }));
-}
-
 // Cache textures across component lifetimes (avoid reload spam)
 const __realPbrCache = new Map();
+
+function __clonePreparedTexture(tex, isColorMap) {
+  if (!tex) return null;
+  const clone = tex.clone();
+  clone.wrapS = THREE.RepeatWrapping;
+  clone.wrapT = THREE.RepeatWrapping;
+  clone.anisotropy = 8;
+  if (isColorMap) clone.colorSpace = THREE.SRGBColorSpace;
+  clone.needsUpdate = true;
+  return clone;
+}
 
 // Minimal KTX2 support: if a preset path ends with .ktx2 we load it via KTX2Loader.
 // Existing JPG-based presets keep working unchanged.
@@ -386,25 +340,39 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
       return;
     }
 
-    const cached = __realPbrCache.get(materialId);
-    if (cached && cached.map && cached.normalMap && cached.roughnessMap) {
-      // Apply repeat settings each time (room dims can change)
-      __applyTexSettings(cached.map, repeatW, repeatD, true);
-      __applyTexSettings(cached.normalMap, repeatW, repeatD, false);
-      __applyTexSettings(cached.roughnessMap, repeatW, repeatD, false);
+    let cancelled = false;
+    const created = [];
 
-      setState({
+    const makePreparedClones = (source) => {
+      const map = __clonePreparedTexture(source.map, true);
+      const normalMap = __clonePreparedTexture(source.normalMap, false);
+      const roughnessMap = __clonePreparedTexture(source.roughnessMap, false);
+      if (!map || !normalMap || !roughnessMap) return null;
+      __applyTexSettings(map, repeatW, repeatD, true);
+      __applyTexSettings(normalMap, repeatW, repeatD, false);
+      __applyTexSettings(roughnessMap, repeatW, repeatD, false);
+      created.push(map, normalMap, roughnessMap);
+      return {
         ready: true,
         failed: false,
-        map: cached.map,
-        normalMap: cached.normalMap,
-        roughnessMap: cached.roughnessMap,
-        normalScale: cached.normalScale ?? preset.normalScale ?? 0.7,
-      });
-      return;
-    }
+        map,
+        normalMap,
+        roughnessMap,
+        normalScale: source.normalScale ?? preset.normalScale ?? 0.7,
+      };
+    };
 
-    let cancelled = false;
+    const cached = __realPbrCache.get(materialId);
+    if (cached && cached.map && cached.normalMap && cached.roughnessMap) {
+      const prepared = makePreparedClones(cached);
+      if (prepared) {
+        setState(prepared);
+        return () => {
+          cancelled = true;
+          created.forEach((tex) => { try { tex?.dispose?.(); } catch {} });
+        };
+      }
+    }
 
     const out = { map: null, normalMap: null, roughnessMap: null, normalScale: preset.normalScale ?? 0.7 };
     let ok = 0;
@@ -414,7 +382,6 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
       if (cancelled) return;
 
       if (failed || !out.map || !out.normalMap || !out.roughnessMap) {
-        // dispose partials
         try { out.map?.dispose?.(); } catch {}
         try { out.normalMap?.dispose?.(); } catch {}
         try { out.roughnessMap?.dispose?.(); } catch {}
@@ -422,12 +389,13 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
         return;
       }
 
-      __applyTexSettings(out.map, repeatW, repeatD, true);
-      __applyTexSettings(out.normalMap, repeatW, repeatD, false);
-      __applyTexSettings(out.roughnessMap, repeatW, repeatD, false);
-
       __realPbrCache.set(materialId, out);
-      setState({ ready: true, failed: false, map: out.map, normalMap: out.normalMap, roughnessMap: out.roughnessMap, normalScale: out.normalScale });
+      const prepared = makePreparedClones(out);
+      if (!prepared) {
+        setState({ ready: false, failed: true, map: null, normalMap: null, roughnessMap: null, normalScale: 0.7 });
+        return;
+      }
+      setState(prepared);
     };
 
     const loadOne = (key, url) => {
@@ -457,6 +425,7 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
 
     return () => {
       cancelled = true;
+      created.forEach((tex) => { try { tex?.dispose?.(); } catch {} });
     };
   }, [materialId, preset, repeatW, repeatD]);
 
@@ -1020,16 +989,22 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
 
   if (!showWalls) return null;
 
-  const wallMaterialKey = [
-    wallMap?.uuid || "nomap",
-    wallNormalMap?.uuid || "nonormal",
-    wallRoughnessMap?.uuid || "norough",
-    wallNormalScale || 0.7,
-    wallRoughnessStrength,
-    wallColorTint,
-    wallEmissiveStrength,
-    wallOpacity,
-  ].join("|");
+  const wallMat = (
+    <meshStandardMaterial
+      map={wallMap}
+      normalMap={wallNormalMap || null}
+      roughnessMap={wallRoughnessMap || null}
+      normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
+      color={wallColorTint}
+      emissive={wallColorTint}
+      emissiveIntensity={wallEmissiveStrength}
+      roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
+      metalness={0}
+      transparent={wallOpacity < 1}
+      opacity={wallOpacity}
+      depthWrite={wallOpacity >= 1}
+    />
+  );
 
 // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
   const noRaycast = () => null;
@@ -1038,23 +1013,9 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
     // option 1 + option 3: always keep the camera-facing wall open (hidden)
     if (hiddenWall === key) return null;
     return (
-      <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
+      <mesh castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
         <boxGeometry args={geomArgs} />
-        <meshStandardMaterial
-          key={`mat|${key}|${wallMaterialKey}`}
-          map={wallMap}
-          normalMap={wallNormalMap || null}
-          roughnessMap={wallRoughnessMap || null}
-          normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
-          color={wallColorTint}
-          emissive={wallColorTint}
-          emissiveIntensity={wallEmissiveStrength}
-          roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
-          metalness={0}
-          transparent={wallOpacity < 1}
-          opacity={wallOpacity}
-          depthWrite={wallOpacity >= 1}
-        />
+        {wallMat}
       </mesh>
     );
   };
@@ -1389,7 +1350,7 @@ const wallRepeatY = useMemo(() => {
   const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
   const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
   return Math.max(1, wallH / tileSize);
-}, [wallMaterialId, theme, wallH]);
+}, [effectiveWallMaterialId, theme, wallH]);
 
 const groundRepeatX = useMemo(() => {
   const preset = REAL_PBR_PRESETS[effectiveGroundMaterialId];
@@ -1469,7 +1430,8 @@ const wallPresetEmissiveStrength = useMemo(() => {
 const wallMapToUse = realWall.ready ? realWall.map : wallTex;
 const wallNormalToUse = realWall.ready ? realWall.normalMap : null;
 const wallRoughToUse = realWall.ready ? realWall.roughnessMap : null;
-const wallNormalScaleToUse = realWall.ready ? realWall.normalScale : 0.7;
+const wallNormalScaleToUse = realWall.ready ? (realWall.normalScale * 0.45) : 0.32;
+const wallEmissiveStrengthToUse = realWall.ready ? Math.max(wallPresetEmissiveStrength, 0.06) : wallPresetEmissiveStrength;
 
 
   if (!__webglOk) {
@@ -1555,7 +1517,7 @@ return (
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallColorTint={wallPresetColorTint} wallEmissiveStrength={wallPresetEmissiveStrength} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallColorTint={wallPresetColorTint} wallEmissiveStrength={wallEmissiveStrengthToUse} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
 
 
         {/* Blocks */}
