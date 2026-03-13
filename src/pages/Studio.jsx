@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Undo2, Redo2, Camera, ChevronDown, FolderPlus, Save, MousePointer2, Plus, Move, Trash2 } from "lucide-react";
-import StudioScene from "../components/StudioScene.jsx";
+import StudioScene, { getMaterialOptions } from "../components/StudioScene.jsx";
 
 function nowTime() {
   const d = new Date();
@@ -35,6 +35,22 @@ export default function Studio() {
   const [templateId, setTemplateId] = useState("badkamer");
   const normalizedTemplateId = normalizeTemplateId(templateId);
   const isGardenTemplate = normalizedTemplateId === "tuin";
+  const floorMaterialOptions = useMemo(
+    () => getMaterialOptions({ surface: "floor", templateId: normalizedTemplateId }),
+    [normalizedTemplateId]
+  );
+  const wallMaterialOptions = useMemo(
+    () => getMaterialOptions({ surface: "wall", templateId: normalizedTemplateId }),
+    [normalizedTemplateId]
+  );
+  const groundMaterialOptions = useMemo(
+    () => getMaterialOptions({ surface: "ground", templateId: normalizedTemplateId }),
+    [normalizedTemplateId]
+  );
+  const boundaryMaterialOptions = useMemo(
+    () => getMaterialOptions({ surface: "boundary", templateId: normalizedTemplateId }),
+    [normalizedTemplateId]
+  );
 
 
 // Surface materials (PBR-ready). Defaults keep current look until you choose a PBR option AND add textures in /public/textures.
@@ -1394,10 +1410,9 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_marble_gloss">Marmer – glanzend</option>
-                        <option value="pbr_tile_white_gloss">Tegel – glanzend wit</option>
-                        <option value="pbr_granite_grey_tile">Tegel – grijs (graniet)</option>
-                        <option value="pbr_tile_grey_matte">Tegel – mat grijs</option>
+                        {floorMaterialOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1414,9 +1429,9 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_marble_gloss">Marmer – glanzend </option>
-                        <option value="pbr_tile_white_gloss">Tegel – glanzend wit</option>
-                        <option value="pbr_tile_grey_matte">Tegel – mat grijs</option>
+                        {wallMaterialOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1438,8 +1453,9 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_grass">Gras (PBR)</option>
-                        <option value="pbr_paving">Terrastegel / bestrating (PBR)</option>
+                        {groundMaterialOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1456,9 +1472,9 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         }}
                       >
                         <option value="default">Huidig (simpel)</option>
-                        <option value="pbr_boundary_fence_wood">Schutting hout (PBR)</option>
-                        <option value="pbr_boundary_hedge">Haag / begroeiing (PBR)</option>
-                        <option value="pbr_boundary_concrete">Muur / beton (PBR)</option>
+                        {boundaryMaterialOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
