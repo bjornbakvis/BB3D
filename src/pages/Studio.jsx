@@ -765,8 +765,8 @@ if (DEBUG_SNAPS) {
       return !(ny + nh <= oy + eps || ny >= oy + oh - eps);
     };
 
-    const alignMagnet = 0.10; // first approach line-up
-    const maintainAlignMagnet = 0.35; // keep line-up stronger while objects are already touching
+    const alignMagnet = 0.08; // first approach line-up
+    const maintainAlignMagnet = 0.24; // keep line-up helpful while objects are already touching
     let bestObjectSnap = null;
     let bestObjectSnapScore = Infinity;
 
@@ -1300,6 +1300,7 @@ function handlePlaceAt(x, z, rotYFromCamera) {
                         tool={tool}
                         onPlaceAt={handlePlaceAt}
                         onObjectClick={handleObjectClick3D}
+                        onEmptyFloorClick={() => setSelectedId(null)}
                         onMoveStart={handleMoveStart}
                         onMove={handleMoveAt}
                         roomW={roomW}
