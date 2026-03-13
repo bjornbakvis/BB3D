@@ -375,11 +375,19 @@ function __clonePreparedTexture(baseTex, repsX, repsY, isColorMap, opts = null) 
   tex.image = baseTex.image;
   tex.source = baseTex.source;
   __applyTexSettings(tex, repsX, repsY, isColorMap);
+  if (opts?.flipX) {
+    tex.repeat.x = -Math.abs(tex.repeat.x);
+    tex.offset.x = 1;
+  }
+  if (opts?.flipY) {
+    tex.repeat.y = -Math.abs(tex.repeat.y);
+    tex.offset.y = 1;
+  }
   if (opts?.rotateQuarterTurns) {
     tex.center.set(0.5, 0.5);
     tex.rotation = (Math.PI / 2) * opts.rotateQuarterTurns;
-    tex.needsUpdate = true;
   }
+  tex.needsUpdate = true;
   return tex;
 }
 
@@ -952,10 +960,14 @@ function Room({
   wallFrontNormalMap,
   wallFrontRoughnessMap,
   wallFrontNormalScale,
-  wallSideMap,
-  wallSideNormalMap,
-  wallSideRoughnessMap,
-  wallSideNormalScale,
+  wallLeftMap,
+  wallLeftNormalMap,
+  wallLeftRoughnessMap,
+  wallLeftNormalScale,
+  wallRightMap,
+  wallRightNormalMap,
+  wallRightRoughnessMap,
+  wallRightNormalScale,
   wallRoughnessStrength = 0.9,
   wallColorTint = "#ffffff",
   wallEmissiveStrength = 0,
@@ -1072,11 +1084,22 @@ function Room({
     wallOpacity,
   ].join("|");
 
-  const wallSideMaterialKey = [
-    wallSideMap?.uuid || "nomap",
-    wallSideNormalMap?.uuid || "nonormal",
-    wallSideRoughnessMap?.uuid || "norough",
-    wallSideNormalScale || 0.7,
+  const wallLeftMaterialKey = [
+    wallLeftMap?.uuid || "nomap",
+    wallLeftNormalMap?.uuid || "nonormal",
+    wallLeftRoughnessMap?.uuid || "norough",
+    wallLeftNormalScale || 0.7,
+    wallRoughnessStrength,
+    wallColorTint,
+    wallEmissiveStrength,
+    wallOpacity,
+  ].join("|");
+
+  const wallRightMaterialKey = [
+    wallRightMap?.uuid || "nomap",
+    wallRightNormalMap?.uuid || "nonormal",
+    wallRightRoughnessMap?.uuid || "norough",
+    wallRightNormalScale || 0.7,
     wallRoughnessStrength,
     wallColorTint,
     wallEmissiveStrength,
@@ -1091,11 +1114,12 @@ function Room({
     if (hiddenWall === key) return null;
 
     const isFrontSurface = surface === "front";
-    const wallMap = isFrontSurface ? wallFrontMap : wallSideMap;
-    const wallNormalMap = isFrontSurface ? wallFrontNormalMap : wallSideNormalMap;
-    const wallRoughnessMap = isFrontSurface ? wallFrontRoughnessMap : wallSideRoughnessMap;
-    const wallNormalScale = isFrontSurface ? wallFrontNormalScale : wallSideNormalScale;
-    const wallMaterialKey = isFrontSurface ? wallFrontMaterialKey : wallSideMaterialKey;
+    const isLeftSurface = surface === "left";
+    const wallMap = isFrontSurface ? wallFrontMap : (isLeftSurface ? wallLeftMap : wallRightMap);
+    const wallNormalMap = isFrontSurface ? wallFrontNormalMap : (isLeftSurface ? wallLeftNormalMap : wallRightNormalMap);
+    const wallRoughnessMap = isFrontSurface ? wallFrontRoughnessMap : (isLeftSurface ? wallLeftRoughnessMap : wallRightRoughnessMap);
+    const wallNormalScale = isFrontSurface ? wallFrontNormalScale : (isLeftSurface ? wallLeftNormalScale : wallRightNormalScale);
+    const wallMaterialKey = isFrontSurface ? wallFrontMaterialKey : (isLeftSurface ? wallLeftMaterialKey : wallRightMaterialKey);
 
     return (
       <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast}>
@@ -1123,8 +1147,8 @@ function Room({
     <group>
       {renderWall("back", { position: [0, wallH / 2, -roomD / 2] }, [roomW, wallH, 0.1], "front")}
       {renderWall("front", { position: [0, wallH / 2, roomD / 2] }, [roomW, wallH, 0.1], "front")}
-      {renderWall("left", { position: [-roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "side")}
-      {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "side")}
+      {renderWall("left", { position: [-roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "left")}
+      {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "right")}
     </group>
   );
 }
@@ -1471,7 +1495,8 @@ const groundRepeatZ = useMemo(() => {
 
 const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRepeatZ);
 const realWallFront = useRealPBRSet(effectiveWallMaterialId, wallRepeatFrontX, wallRepeatY, { rotateQuarterTurns: 1 });
-const realWallSide = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY, { rotateQuarterTurns: 1 });
+const realWallLeft = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY, { rotateQuarterTurns: 1 });
+const realWallRight = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY, { rotateQuarterTurns: 1, flipX: true });
 const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
 const floorPresetRoughness = useMemo(() => {
@@ -1503,7 +1528,7 @@ const wallPresetEmissiveStrength = useMemo(() => {
 }, [effectiveWallMaterialId]);
 
 const wallEmissiveStrengthToUse =
-  (realWallFront.ready || realWallSide.ready)
+  (realWallFront.ready || realWallLeft.ready || realWallRight.ready)
     ? Math.max(wallPresetEmissiveStrength, 0.04)
     : wallPresetEmissiveStrength;
 
@@ -1557,10 +1582,15 @@ const wallFrontNormalToUse = realWallFront.ready ? realWallFront.normalMap : nul
 const wallFrontRoughToUse = realWallFront.ready ? realWallFront.roughnessMap : null;
 const wallFrontNormalScaleToUse = realWallFront.ready ? realWallFront.normalScale * 0.16 : 0.45;
 
-const wallSideMapToUse = realWallSide.ready ? realWallSide.map : wallTexSide;
-const wallSideNormalToUse = realWallSide.ready ? realWallSide.normalMap : null;
-const wallSideRoughToUse = realWallSide.ready ? realWallSide.roughnessMap : null;
-const wallSideNormalScaleToUse = realWallSide.ready ? realWallSide.normalScale * 0.16 : 0.45;
+const wallLeftMapToUse = realWallLeft.ready ? realWallLeft.map : wallTexSide;
+const wallLeftNormalToUse = realWallLeft.ready ? realWallLeft.normalMap : null;
+const wallLeftRoughToUse = realWallLeft.ready ? realWallLeft.roughnessMap : null;
+const wallLeftNormalScaleToUse = realWallLeft.ready ? realWallLeft.normalScale * 0.16 : 0.45;
+
+const wallRightMapToUse = realWallRight.ready ? realWallRight.map : wallTexSide;
+const wallRightNormalToUse = realWallRight.ready ? realWallRight.normalMap : null;
+const wallRightRoughToUse = realWallRight.ready ? realWallRight.roughnessMap : null;
+const wallRightNormalScaleToUse = realWallRight.ready ? realWallRight.normalScale * 0.16 : 0.45;
 
 
   if (!__webglOk) {
@@ -1591,7 +1621,8 @@ return (
           position={[5, 9, 5]}
           intensity={theme.light.sun}
           castShadow
-          shadow-bias={-0.00015}
+          shadow-bias={0.0005}
+          shadow-normalBias={0.03}
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
@@ -1661,10 +1692,14 @@ return (
           wallFrontNormalMap={wallFrontNormalToUse}
           wallFrontRoughnessMap={wallFrontRoughToUse}
           wallFrontNormalScale={wallFrontNormalScaleToUse}
-          wallSideMap={wallSideMapToUse}
-          wallSideNormalMap={wallSideNormalToUse}
-          wallSideRoughnessMap={wallSideRoughToUse}
-          wallSideNormalScale={wallSideNormalScaleToUse}
+          wallLeftMap={wallLeftMapToUse}
+          wallLeftNormalMap={wallLeftNormalToUse}
+          wallLeftRoughnessMap={wallLeftRoughToUse}
+          wallLeftNormalScale={wallLeftNormalScaleToUse}
+          wallRightMap={wallRightMapToUse}
+          wallRightNormalMap={wallRightNormalToUse}
+          wallRightRoughnessMap={wallRightRoughToUse}
+          wallRightNormalScale={wallRightNormalScaleToUse}
           wallRoughnessStrength={wallPresetRoughness}
           wallColorTint={wallPresetColorTint}
           wallEmissiveStrength={wallEmissiveStrengthToUse}
