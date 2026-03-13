@@ -1262,6 +1262,7 @@ export default function StudioScene({
   tool,
   onPlaceAt,
   onObjectClick,
+  onEmptyFloorClick,
   onMoveStart,
   onMove,
   snapStep = 0,
@@ -1471,8 +1472,11 @@ return (
           onPointerDown={(e) => {
             e.stopPropagation();
 
-            // Place only when the tool is "place"
-            if (tool !== "place") return;
+            // Empty floor click deselects when not placing
+            if (tool !== "place") {
+              onEmptyFloorClick?.();
+              return;
+            }
 
             const p = e.point; // THREE.Vector3
             const x0 = snap(p.x, snapStep);
