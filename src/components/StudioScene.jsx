@@ -1527,10 +1527,7 @@ const wallPresetEmissiveStrength = useMemo(() => {
   return REAL_PBR_PRESETS[effectiveWallMaterialId]?.emissiveStrength ?? 0;
 }, [effectiveWallMaterialId]);
 
-const wallEmissiveStrengthToUse =
-  (realWallFront.ready || realWallLeft.ready || realWallRight.ready)
-    ? Math.max(wallPresetEmissiveStrength, 0.04)
-    : wallPresetEmissiveStrength;
+const wallEmissiveStrengthToUse = wallPresetEmissiveStrength;
 
 // Stability-first wall rendering:
 // Walls are shown planner-clean to avoid KTX2/PBR wall artefacts (black speckles/streaks).
