@@ -160,7 +160,7 @@ export const REAL_PBR_PRESETS = {
     normalScale: 0.4,
     roughnessStrength: 0.75,
     colorTint: "#ffffff",
-    emissiveStrength: 0.10,
+    emissiveStrength: 0.16,
   },
   pbr_tile_grey_matte: {
     label: "Tegel – mat grijs (PBR)",
