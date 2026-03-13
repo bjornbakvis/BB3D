@@ -649,12 +649,12 @@ if (userHasOverride) {
       // Default (no override) = empty string / undefined.
       return (
         <group>
-          <mesh castShadow receiveShadow position={[0, yTop, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yTop, 0]}>
             <boxGeometry args={[w * 1.02, t, d * 1.02]} />
             {mainMat}
           </mesh>
           {/* subtle underside shadow lip */}
-          <mesh castShadow receiveShadow position={[0, yTop - t * 0.35, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yTop - t * 0.35, 0]}>
             <boxGeometry args={[w * 0.98, t * 0.18, d * 0.98]} />
             <meshStandardMaterial
               color={color}
@@ -677,11 +677,11 @@ if (userHasOverride) {
 
       return (
         <group>
-          <mesh castShadow receiveShadow position={[0, yBody, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yBody, 0]}>
             <boxGeometry args={[w, bodyH, d]} />
             {mainMat}
           </mesh>
-          <mesh castShadow receiveShadow position={[0, yPlinth, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yPlinth, 0]}>
             <boxGeometry args={[w * 1.01, plinthH, d * 1.01]} />
             <meshStandardMaterial
               color={
@@ -702,7 +702,7 @@ if (userHasOverride) {
             />
           </mesh>
           {/* tiny handle hint */}
-          <mesh castShadow receiveShadow position={[w * 0.25, yBody, d * 0.51]}>
+          <mesh castShadow={false} receiveShadow={false} position={[w * 0.25, yBody, d * 0.51]}>
             <boxGeometry args={[w * 0.18, bodyH * 0.06, 0.02]} />
             <meshStandardMaterial
               color={
@@ -739,16 +739,16 @@ if (userHasOverride) {
 
         return (
           <group>
-            <mesh castShadow receiveShadow position={[0, yBase, 0]}>
+            <mesh castShadow={false} receiveShadow={false} position={[0, yBase, 0]}>
               <boxGeometry args={[w * 0.75, baseH, d * 0.60]} />
               {mainMat}
             </mesh>
-            <mesh castShadow receiveShadow position={[0, yBowl, 0]}>
+            <mesh castShadow={false} receiveShadow={false} position={[0, yBowl, 0]}>
               <cylinderGeometry args={[Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, bowlH, 24]} />
               {mainMat}
             </mesh>
             {/* faucet hint */}
-            <mesh castShadow receiveShadow position={[0, yBowl + bowlH * 0.15, d * 0.22]}>
+            <mesh castShadow={false} receiveShadow={false} position={[0, yBowl + bowlH * 0.15, d * 0.22]}>
               <cylinderGeometry args={[0.02, 0.02, h * 0.22, 12]} />
               <meshStandardMaterial
                 color={"#3a3a3a"}
@@ -773,15 +773,15 @@ if (userHasOverride) {
 
       return (
         <group>
-          <mesh castShadow receiveShadow position={[0, yBase, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yBase, 0]}>
             <boxGeometry args={[w * 0.75, baseH, d * 0.80]} />
             {mainMat}
           </mesh>
-          <mesh castShadow receiveShadow position={[0, yBowl, -d * 0.10]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yBowl, -d * 0.10]}>
             <cylinderGeometry args={[Math.min(w, d) * 0.22, Math.min(w, d) * 0.28, bowlH, 24]} />
             {mainMat}
           </mesh>
-          <mesh castShadow receiveShadow position={[0, yTank, d * 0.18]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yTank, d * 0.18]}>
             <boxGeometry args={[w * 0.55, tankH, d * 0.30]} />
             {mainMat}
           </mesh>
@@ -802,13 +802,13 @@ if (userHasOverride) {
       return (
         <group>
           {/* Outer box */}
-          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, 0, 0]}>
             <boxGeometry args={[w, h, d]} />
             {mainMat}
           </mesh>
 
           {/* Soil */}
-          <mesh castShadow receiveShadow position={[0, ySoil, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, ySoil, 0]}>
             <boxGeometry args={[Math.max(0.05, w - wall * 2), soilH, Math.max(0.05, d - wall * 2)]} />
             <meshStandardMaterial
               color={"#4a3428"}
@@ -820,7 +820,7 @@ if (userHasOverride) {
           </mesh>
 
           {/* Plant */}
-          <mesh castShadow receiveShadow position={[0, yPlant, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yPlant, 0]}>
             <cylinderGeometry args={[Math.min(w, d) * 0.12, Math.min(w, d) * 0.16, plantH, 16]} />
             <meshStandardMaterial
               color={"#2f7d32"}
@@ -843,11 +843,11 @@ if (userHasOverride) {
 
       return (
         <group>
-          <mesh castShadow receiveShadow position={[0, yBottom, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yBottom, 0]}>
             <boxGeometry args={[w, bottomH, d]} />
             {mainMat}
           </mesh>
-          <mesh castShadow receiveShadow position={[0, yTop, 0]}>
+          <mesh castShadow={false} receiveShadow={false} position={[0, yTop, 0]}>
             <boxGeometry args={[w * 0.92, topH, d * 0.92]} />
             {mainMat}
           </mesh>
@@ -858,7 +858,7 @@ if (userHasOverride) {
     // Default: fallback to a simple box (visual)
     return (
       <group>
-        <mesh castShadow receiveShadow position={[0, 0, 0]}>
+        <mesh castShadow={false} receiveShadow={false} position={[0, 0, 0]}>
           <boxGeometry args={[w, h, d]} />
           {mainMat}
         </mesh>
@@ -930,8 +930,8 @@ if (userHasOverride) {
             onPointerCancel={() => {
               if (draggingId === o.id) setDraggingId(null);
             }}
-            castShadow
-            receiveShadow
+            castShadow={false}
+            receiveShadow={false}
           >
             <boxGeometry args={[w, h, d]} />
             <meshStandardMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
