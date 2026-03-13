@@ -146,10 +146,11 @@ function makeCheckerTexture({ c1, c2, squares = 16, size = 512 }) {
  * public/textures/bathroom/tile_white_gloss/normal.jpg
  * public/textures/bathroom/tile_white_gloss/roughness.jpg
  */
-const REAL_PBR_PRESETS = {
+export const REAL_PBR_PRESETS = {
   // Bathroom / toilet
   pbr_tile_white_gloss: {
     label: "Wandtegel – glanzend wit (PBR)",
+    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/tile_white_gloss/albedo.ktx2",
       normal: "/textures/bathroom/tile_white_gloss/normal.ktx2",
@@ -163,6 +164,7 @@ const REAL_PBR_PRESETS = {
   },
   pbr_tile_grey_matte: {
     label: "Tegel – mat grijs (PBR)",
+    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
       normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
@@ -174,6 +176,7 @@ const REAL_PBR_PRESETS = {
   },
   pbr_marble_gloss: {
     label: "Marmer – glanzend (PBR)",
+    ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/marble_gloss/albedo.jpg",
       normal: "/textures/bathroom/marble_gloss/normal.jpg",
@@ -185,6 +188,7 @@ const REAL_PBR_PRESETS = {
   },
   pbr_granite_grey_tile: {
     label: "Graniet tegel – grijs (PBR)",
+    ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
     paths: {
       albedo: "/textures/bathroom/granite_grey_tile/albedo.ktx2",
       normal: "/textures/bathroom/granite_grey_tile/normal.ktx2",
@@ -195,9 +199,23 @@ const REAL_PBR_PRESETS = {
     roughnessStrength: 0.6,
   },
 
+  pbr_wood_floor: {
+    label: "Houten vloer (PBR)",
+    ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
+    paths: {
+      albedo: "/textures/wood_floor/albedo.ktx2",
+      normal: "/textures/wood_floor/normal.ktx2",
+      roughness: "/textures/wood_floor/roughness.ktx2",
+    },
+    tileSizeM: 0.25,
+    normalScale: 0.6,
+    roughnessStrength: 0.9,
+  },
+
   // Garden
   pbr_grass: {
     label: "Gras (PBR)",
+    ui: { surface: ["ground"], templates: ["tuin"] },
     paths: {
       albedo: "/textures/garden/grass/albedo.ktx2",
       normal: "/textures/garden/grass/normal.ktx2",
@@ -209,6 +227,7 @@ const REAL_PBR_PRESETS = {
   },
   pbr_paving: {
     label: "Terrastegel / bestrating (PBR)",
+    ui: { surface: ["ground"], templates: ["tuin"] },
     paths: {
       albedo: "/textures/garden/paving/albedo.ktx2",
       normal: "/textures/garden/paving/normal.ktx2",
@@ -222,6 +241,7 @@ const REAL_PBR_PRESETS = {
 // Garden boundaries (terrain separation) - add your own CC0 textures here
 pbr_boundary_fence_wood: {
   label: "Schutting hout (PBR)",
+  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/fence_wood/albedo.jpg",
     normal: "/textures/garden/boundary/fence_wood/normal.jpg",
@@ -232,6 +252,7 @@ pbr_boundary_fence_wood: {
 },
 pbr_boundary_hedge: {
   label: "Haag / begroeiing (PBR)",
+  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/hedge/albedo.jpg",
     normal: "/textures/garden/boundary/hedge/normal.jpg",
@@ -242,6 +263,7 @@ pbr_boundary_hedge: {
 },
 pbr_boundary_concrete: {
   label: "Muur / beton (PBR)",
+  ui: { surface: ["boundary"], templates: ["tuin"] },
   paths: {
     albedo: "/textures/garden/boundary/concrete/albedo.jpg",
     normal: "/textures/garden/boundary/concrete/normal.jpg",
@@ -251,6 +273,27 @@ pbr_boundary_concrete: {
   roughnessStrength: 0.9,
 },
 };
+
+function normalizeMaterialTemplateId(id) {
+  if (id === "bathroom") return "badkamer";
+  if (id === "garden") return "tuin";
+  if (id === "empty") return "leeg";
+  if (id === "toilet") return "toilet";
+  return id || "badkamer";
+}
+
+export function getMaterialOptions({ surface, templateId }) {
+  const normalizedTemplateId = normalizeMaterialTemplateId(templateId);
+  return Object.entries(REAL_PBR_PRESETS)
+    .filter(([, preset]) => {
+      const ui = preset?.ui;
+      if (!ui) return false;
+      const surfaces = Array.isArray(ui.surface) ? ui.surface : [ui.surface];
+      const templates = Array.isArray(ui.templates) ? ui.templates : [ui.templates];
+      return surfaces.includes(surface) && templates.includes(normalizedTemplateId);
+    })
+    .map(([value, preset]) => ({ value, label: preset.label }));
+}
 
 // Cache textures across component lifetimes (avoid reload spam)
 const __realPbrCache = new Map();
