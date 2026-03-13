@@ -166,9 +166,9 @@ export const REAL_PBR_PRESETS = {
     label: "Tegel – mat grijs (PBR)",
     ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
-      albedo: "/textures/bathroom/tile_grey_matte/albedo.ktx2",
-      normal: "/textures/bathroom/tile_grey_matte/normal.ktx2",
-      roughness: "/textures/bathroom/tile_grey_matte/roughness.ktx2",
+      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
+      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
+      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
     },
     tileSizeM: 0.60,
     normalScale: 0.7,
@@ -217,9 +217,9 @@ export const REAL_PBR_PRESETS = {
     label: "Houten vloer (PBR)",
     ui: { surface: ["floor"], templates: ["badkamer", "toilet"] },
     paths: {
-      albedo: "/textures/bathroom/wood_floor/albedo.ktx2",
-      normal: "/textures/bathroom/wood_floor/normal.ktx2",
-      roughness: "/textures/bathroom/wood_floor/roughness.ktx2",
+      albedo: "/textures/wood_floor/albedo.ktx2",
+      normal: "/textures/wood_floor/normal.ktx2",
+      roughness: "/textures/wood_floor/roughness.ktx2",
     },
     tileSizeM: 0.25,
     normalScale: 0.6,
@@ -1020,22 +1020,16 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
 
   if (!showWalls) return null;
 
-  const wallMat = (
-    <meshStandardMaterial
-      map={wallMap}
-      normalMap={wallNormalMap || null}
-      roughnessMap={wallRoughnessMap || null}
-      normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
-      color={wallColorTint}
-      emissive={wallColorTint}
-      emissiveIntensity={wallEmissiveStrength}
-      roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
-      metalness={0}
-      transparent={wallOpacity < 1}
-      opacity={wallOpacity}
-      depthWrite={wallOpacity >= 1}
-    />
-  );
+  const wallMaterialKey = [
+    wallMap?.uuid || "nomap",
+    wallNormalMap?.uuid || "nonormal",
+    wallRoughnessMap?.uuid || "norough",
+    wallNormalScale || 0.7,
+    wallRoughnessStrength,
+    wallColorTint,
+    wallEmissiveStrength,
+    wallOpacity,
+  ].join("|");
 
 // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
   const noRaycast = () => null;
@@ -1044,9 +1038,23 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
     // option 1 + option 3: always keep the camera-facing wall open (hidden)
     if (hiddenWall === key) return null;
     return (
-      <mesh castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
+      <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
         <boxGeometry args={geomArgs} />
-        {wallMat}
+        <meshStandardMaterial
+          key={`mat|${key}|${wallMaterialKey}`}
+          map={wallMap}
+          normalMap={wallNormalMap || null}
+          roughnessMap={wallRoughnessMap || null}
+          normalScale={wallNormalMap ? new THREE.Vector2(wallNormalScale || 0.7, wallNormalScale || 0.7) : undefined}
+          color={wallColorTint}
+          emissive={wallColorTint}
+          emissiveIntensity={wallEmissiveStrength}
+          roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
+          metalness={0}
+          transparent={wallOpacity < 1}
+          opacity={wallOpacity}
+          depthWrite={wallOpacity >= 1}
+        />
       </mesh>
     );
   };
