@@ -497,7 +497,7 @@ function getThemeConfig(templateId) {
       floor: { c1: "#f5f5f5", c2: "#eeeeee", squares: 64, tileSize: 0.25 },
       wall: { c1: "#d9d9d9", c2: "#cfcfcf", squares: 24, tileSize: 0.6, opacity: 0.25 },
       grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.35, sectionThickness: 0.75 },
-      light: { ambient: 0.7, sun: 1.05 },
+      light: { ambient: 0.9, sun: 0.78, fill: 0.38 },
     };
   }
   if (id === "toilet") {
@@ -506,7 +506,7 @@ function getThemeConfig(templateId) {
       floor: { c1: "#d6d6d6", c2: "#cfcfcf", squares: 48, tileSize: 0.22 },
       wall: { c1: "#f2f2f2", c2: "#e9e9e9", squares: 28, tileSize: 0.25, opacity: 0.35 },
       grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.4, sectionThickness: 0.9 },
-      light: { ambient: 0.58, sun: 1.0 },
+      light: { ambient: 0.88, sun: 0.76, fill: 0.34 },
     };
   }
   // bathroom default
@@ -515,7 +515,7 @@ function getThemeConfig(templateId) {
     floor: { c1: "#e6e6e6", c2: "#dedede", squares: 40, tileSize: 0.3 },
     wall: { c1: "#f4f4f4", c2: "#ececec", squares: 24, tileSize: 0.25, opacity: 0.35 },
     grid: { cell: "#0b0b0b", section: "#0b0b0b", cellThickness: 0.4, sectionThickness: 0.9 },
-    light: { ambient: 0.6, sun: 1.05 },
+    light: { ambient: 0.9, sun: 0.78, fill: 0.36 },
   };
 }
 
@@ -1499,7 +1499,7 @@ const wallPresetEmissiveStrength = useMemo(() => {
 
 const wallEmissiveStrengthToUse =
   (realWallFront.ready || realWallSide.ready)
-    ? Math.max(wallPresetEmissiveStrength, 0.08)
+    ? Math.max(wallPresetEmissiveStrength, 0.04)
     : wallPresetEmissiveStrength;
 
 
@@ -1550,12 +1550,12 @@ const wallEmissiveStrengthToUse =
 const wallFrontMapToUse = realWallFront.ready ? realWallFront.map : wallTexFront;
 const wallFrontNormalToUse = realWallFront.ready ? realWallFront.normalMap : null;
 const wallFrontRoughToUse = realWallFront.ready ? realWallFront.roughnessMap : null;
-const wallFrontNormalScaleToUse = realWallFront.ready ? realWallFront.normalScale * 0.28 : 0.7;
+const wallFrontNormalScaleToUse = realWallFront.ready ? realWallFront.normalScale * 0.16 : 0.45;
 
 const wallSideMapToUse = realWallSide.ready ? realWallSide.map : wallTexSide;
 const wallSideNormalToUse = realWallSide.ready ? realWallSide.normalMap : null;
 const wallSideRoughToUse = realWallSide.ready ? realWallSide.roughnessMap : null;
-const wallSideNormalScaleToUse = realWallSide.ready ? realWallSide.normalScale * 0.28 : 0.7;
+const wallSideNormalScaleToUse = realWallSide.ready ? realWallSide.normalScale * 0.16 : 0.45;
 
 
   if (!__webglOk) {
@@ -1575,12 +1575,18 @@ return (
 
         {/* Licht */}
         <ambientLight intensity={theme.light.ambient} />
+        <hemisphereLight
+          skyColor={"#ffffff"}
+          groundColor={"#f3f3f3"}
+          intensity={theme.light.fill || 0.35}
+        />
                 <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} targetY={controlsTargetY} />
         <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} targetY={controlsTargetY} />
 <directionalLight
-          position={[6, 10, 4]}
+          position={[5, 9, 5]}
           intensity={theme.light.sun}
           castShadow
+          shadow-bias={-0.00015}
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
