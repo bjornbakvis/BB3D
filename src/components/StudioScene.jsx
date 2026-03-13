@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Edges, Html, Environment } from "@react-three/drei";
+import { OrbitControls, Grid, Edges, Html } from "@react-three/drei";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader";
 
 function isWebGLAvailable() {
@@ -1545,9 +1545,9 @@ const wallRightNormalToUse = wallStudioSafeMode ? null : (realWallRight.ready ? 
 const wallRightRoughToUse = wallStudioSafeMode ? null : (realWallRight.ready ? realWallRight.roughnessMap : null);
 const wallRightNormalScaleToUse = wallStudioSafeMode ? 0 : (realWallRight.ready ? realWallRight.normalScale * 0.16 : 0.45);
 
-const studioAmbientIntensity = isGardenTemplate ? theme.light.ambient : Math.max(theme.light.ambient, 0.95);
-const studioHemisphereIntensity = isGardenTemplate ? (theme.light.fill || 0.35) : 0.52;
-const studioDirectionalIntensity = isGardenTemplate ? theme.light.sun : Math.min(theme.light.sun, 0.28);
+const studioAmbientIntensity = theme.light.ambient;
+const studioHemisphereIntensity = theme.light.fill || 0.35;
+const studioDirectionalIntensity = theme.light.sun;
 
 
   const floorTex = useMemo(() => {
@@ -1617,7 +1617,6 @@ return (
         <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
 
         {/* Licht */}
-        {!isGardenTemplate && <Environment preset="studio" />}
         <ambientLight intensity={studioAmbientIntensity} />
         <hemisphereLight
           skyColor={"#ffffff"}
@@ -1629,7 +1628,7 @@ return (
 <directionalLight
           position={[5, 9, 5]}
           intensity={studioDirectionalIntensity}
-          castShadow={isGardenTemplate}
+          castShadow
           shadow-bias={0.0005}
           shadow-normalBias={0.03}
           shadow-mapSize-width={1024}
