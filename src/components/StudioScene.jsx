@@ -369,16 +369,21 @@ function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
  * Load a PBR set via TextureLoader with graceful fallback (never crash).
  * Returns: { ready, failed, map, normalMap, roughnessMap, normalScale }
  */
-function __clonePreparedTexture(baseTex, repsX, repsY, isColorMap) {
+function __clonePreparedTexture(baseTex, repsX, repsY, isColorMap, opts = null) {
   if (!baseTex) return null;
   const tex = baseTex.clone();
   tex.image = baseTex.image;
   tex.source = baseTex.source;
   __applyTexSettings(tex, repsX, repsY, isColorMap);
+  if (opts?.rotateQuarterTurns) {
+    tex.center.set(0.5, 0.5);
+    tex.rotation = (Math.PI / 2) * opts.rotateQuarterTurns;
+    tex.needsUpdate = true;
+  }
   return tex;
 }
 
-function useRealPBRSet(materialId, repeatW, repeatD) {
+function useRealPBRSet(materialId, repeatW, repeatD, opts = null) {
   const preset = REAL_PBR_PRESETS[materialId] || null;
   const [state, setState] = useState(() => ({
     ready: false,
@@ -399,9 +404,9 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
     let cloned = { map: null, normalMap: null, roughnessMap: null };
 
     const setFromBase = (base) => {
-      const map = __clonePreparedTexture(base.map, repeatW, repeatD, true);
-      const normalMap = __clonePreparedTexture(base.normalMap, repeatW, repeatD, false);
-      const roughnessMap = __clonePreparedTexture(base.roughnessMap, repeatW, repeatD, false);
+      const map = __clonePreparedTexture(base.map, repeatW, repeatD, true, opts);
+      const normalMap = __clonePreparedTexture(base.normalMap, repeatW, repeatD, false, opts);
+      const roughnessMap = __clonePreparedTexture(base.roughnessMap, repeatW, repeatD, false, opts);
 
       cloned = { map, normalMap, roughnessMap };
 
@@ -475,7 +480,7 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
       try { cloned.normalMap?.dispose?.(); } catch {}
       try { cloned.roughnessMap?.dispose?.(); } catch {}
     };
-  }, [materialId, preset, repeatW, repeatD]);
+  }, [materialId, preset, repeatW, repeatD, opts?.rotateQuarterTurns]);
 
   return state;
 }
@@ -1466,7 +1471,7 @@ const groundRepeatZ = useMemo(() => {
 
 const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRepeatZ);
 const realWallFront = useRealPBRSet(effectiveWallMaterialId, wallRepeatFrontX, wallRepeatY);
-const realWallSide = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY);
+const realWallSide = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY, { rotateQuarterTurns: 1 });
 const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
 const floorPresetRoughness = useMemo(() => {
