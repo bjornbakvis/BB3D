@@ -1703,7 +1703,7 @@ return (
           wallRoughnessStrength={wallPresetRoughness}
           wallColorTint={wallPresetColorTint}
           wallEmissiveStrength={wallEmissiveStrengthToUse}
-          wallOpacity={(!isGardenTemplate && (realWallFront.ready || realWallSide.ready) && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity}
+          wallOpacity={(!isGardenTemplate && (realWallFront.ready || realWallLeft.ready || realWallRight.ready) && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity}
           controlsRef={controlsRef}
           cameraAction={cameraAction}
         />
