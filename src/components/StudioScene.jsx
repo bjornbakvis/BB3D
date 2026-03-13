@@ -1470,7 +1470,7 @@ const groundRepeatZ = useMemo(() => {
 }, [effectiveGroundMaterialId, theme, roomD]);
 
 const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRepeatZ);
-const realWallFront = useRealPBRSet(effectiveWallMaterialId, wallRepeatFrontX, wallRepeatY);
+const realWallFront = useRealPBRSet(effectiveWallMaterialId, wallRepeatFrontX, wallRepeatY, { rotateQuarterTurns: 1 });
 const realWallSide = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY, { rotateQuarterTurns: 1 });
 const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
