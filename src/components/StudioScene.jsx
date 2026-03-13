@@ -166,9 +166,9 @@ export const REAL_PBR_PRESETS = {
     label: "Tegel – mat grijs (PBR)",
     ui: { surface: ["floor", "wall"], templates: ["badkamer", "toilet"] },
     paths: {
-      albedo: "/textures/bathroom/tile_grey_matte/albedo.jpg",
-      normal: "/textures/bathroom/tile_grey_matte/normal.jpg",
-      roughness: "/textures/bathroom/tile_grey_matte/roughness.jpg",
+      albedo: "/textures/bathroom/tile_grey_matte/albedo.ktx2",
+      normal: "/textures/bathroom/tile_grey_matte/normal.ktx2",
+      roughness: "/textures/bathroom/tile_grey_matte/roughness.ktx2",
     },
     tileSizeM: 0.60,
     normalScale: 0.7,
