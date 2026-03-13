@@ -488,7 +488,7 @@ function useRealPBRSet(materialId, repeatW, repeatD, opts = null) {
       try { cloned.normalMap?.dispose?.(); } catch {}
       try { cloned.roughnessMap?.dispose?.(); } catch {}
     };
-  }, [materialId, preset, repeatW, repeatD, opts?.rotateQuarterTurns]);
+  }, [materialId, preset, repeatW, repeatD, opts?.rotateQuarterTurns, opts?.flipX, opts?.flipY]);
 
   return state;
 }
@@ -1122,7 +1122,7 @@ function Room({
     const wallMaterialKey = isFrontSurface ? wallFrontMaterialKey : (isLeftSurface ? wallLeftMaterialKey : wallRightMaterialKey);
 
     return (
-      <mesh key={`${key}|${wallMaterialKey}`} {...props} raycast={noRaycast}>
+      <mesh key={`${key}|${wallMaterialKey}`} {...props} raycast={noRaycast} castShadow={false} receiveShadow={false}>
         <boxGeometry args={geomArgs} />
         <meshStandardMaterial
           key={`mat|${key}|${wallMaterialKey}`}
@@ -1133,7 +1133,7 @@ function Room({
           color={wallColorTint}
           emissive={wallColorTint}
           emissiveIntensity={wallEmissiveStrength}
-          roughness={wallRoughnessMap ? wallRoughnessStrength : 0.92}
+          roughness={wallRoughnessMap ? wallRoughnessStrength : 0.86}
           metalness={0}
           transparent={wallOpacity < 1}
           opacity={wallOpacity}
@@ -1532,6 +1532,26 @@ const wallEmissiveStrengthToUse =
     ? Math.max(wallPresetEmissiveStrength, 0.04)
     : wallPresetEmissiveStrength;
 
+// Stability-first wall rendering:
+// Walls are shown planner-clean to avoid KTX2/PBR wall artefacts (black speckles/streaks).
+// Keep full PBR on the floor/ground, but simplify walls to albedo + fixed roughness.
+const wallStudioSafeMode = !isGardenTemplate && effectiveWallMaterialId !== "default";
+const wallFrontNormalToUse = wallStudioSafeMode ? null : (realWallFront.ready ? realWallFront.normalMap : null);
+const wallFrontRoughToUse = wallStudioSafeMode ? null : (realWallFront.ready ? realWallFront.roughnessMap : null);
+const wallFrontNormalScaleToUse = wallStudioSafeMode ? 0 : (realWallFront.ready ? realWallFront.normalScale * 0.16 : 0.45);
+
+const wallLeftNormalToUse = wallStudioSafeMode ? null : (realWallLeft.ready ? realWallLeft.normalMap : null);
+const wallLeftRoughToUse = wallStudioSafeMode ? null : (realWallLeft.ready ? realWallLeft.roughnessMap : null);
+const wallLeftNormalScaleToUse = wallStudioSafeMode ? 0 : (realWallLeft.ready ? realWallLeft.normalScale * 0.16 : 0.45);
+
+const wallRightNormalToUse = wallStudioSafeMode ? null : (realWallRight.ready ? realWallRight.normalMap : null);
+const wallRightRoughToUse = wallStudioSafeMode ? null : (realWallRight.ready ? realWallRight.roughnessMap : null);
+const wallRightNormalScaleToUse = wallStudioSafeMode ? 0 : (realWallRight.ready ? realWallRight.normalScale * 0.16 : 0.45);
+
+const studioAmbientIntensity = isGardenTemplate ? theme.light.ambient : Math.max(theme.light.ambient, 0.95);
+const studioHemisphereIntensity = isGardenTemplate ? (theme.light.fill || 0.35) : 0.52;
+const studioDirectionalIntensity = isGardenTemplate ? theme.light.sun : Math.min(theme.light.sun, 0.28);
+
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -1578,19 +1598,10 @@ const wallEmissiveStrengthToUse =
 
 
 const wallFrontMapToUse = realWallFront.ready ? realWallFront.map : wallTexFront;
-const wallFrontNormalToUse = realWallFront.ready ? realWallFront.normalMap : null;
-const wallFrontRoughToUse = realWallFront.ready ? realWallFront.roughnessMap : null;
-const wallFrontNormalScaleToUse = realWallFront.ready ? realWallFront.normalScale * 0.16 : 0.45;
 
 const wallLeftMapToUse = realWallLeft.ready ? realWallLeft.map : wallTexSide;
-const wallLeftNormalToUse = realWallLeft.ready ? realWallLeft.normalMap : null;
-const wallLeftRoughToUse = realWallLeft.ready ? realWallLeft.roughnessMap : null;
-const wallLeftNormalScaleToUse = realWallLeft.ready ? realWallLeft.normalScale * 0.16 : 0.45;
 
 const wallRightMapToUse = realWallRight.ready ? realWallRight.map : wallTexSide;
-const wallRightNormalToUse = realWallRight.ready ? realWallRight.normalMap : null;
-const wallRightRoughToUse = realWallRight.ready ? realWallRight.roughnessMap : null;
-const wallRightNormalScaleToUse = realWallRight.ready ? realWallRight.normalScale * 0.16 : 0.45;
 
 
   if (!__webglOk) {
@@ -1609,18 +1620,19 @@ return (
         <Canvas camera={{ position: [Math.max(4, roomW * 1.2), Math.max(3.2, wallH * 1.25 + 1), Math.max(4, roomD * 1.2)], fov: 50 }} shadows gl={{ antialias: true }}>
 
         {/* Licht */}
-        <ambientLight intensity={theme.light.ambient} />
+        {!isGardenTemplate && <Environment preset="studio" />}
+        <ambientLight intensity={studioAmbientIntensity} />
         <hemisphereLight
           skyColor={"#ffffff"}
           groundColor={"#f3f3f3"}
-          intensity={theme.light.fill || 0.35}
+          intensity={studioHemisphereIntensity}
         />
                 <ControlsDefaultStateSaver controlsRef={controlsRef} roomW={roomW} roomD={roomD} wallH={wallH} targetY={controlsTargetY} />
         <CameraActions controlsRef={controlsRef} objects={objects} selectedId={selectedId} roomW={roomW} roomD={roomD} wallH={wallH} cameraAction={cameraAction} targetY={controlsTargetY} />
 <directionalLight
           position={[5, 9, 5]}
-          intensity={theme.light.sun}
-          castShadow
+          intensity={studioDirectionalIntensity}
+          castShadow={isGardenTemplate}
           shadow-bias={0.0005}
           shadow-normalBias={0.03}
           shadow-mapSize-width={1024}
