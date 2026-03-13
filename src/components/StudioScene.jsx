@@ -369,6 +369,15 @@ function __applyTexSettings(tex, repsX, repsZ, isColorMap) {
  * Load a PBR set via TextureLoader with graceful fallback (never crash).
  * Returns: { ready, failed, map, normalMap, roughnessMap, normalScale }
  */
+function __clonePreparedTexture(baseTex, repsX, repsY, isColorMap) {
+  if (!baseTex) return null;
+  const tex = baseTex.clone();
+  tex.image = baseTex.image;
+  tex.source = baseTex.source;
+  __applyTexSettings(tex, repsX, repsY, isColorMap);
+  return tex;
+}
+
 function useRealPBRSet(materialId, repeatW, repeatD) {
   const preset = REAL_PBR_PRESETS[materialId] || null;
   const [state, setState] = useState(() => ({
@@ -386,25 +395,35 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
       return;
     }
 
-    const cached = __realPbrCache.get(materialId);
-    if (cached && cached.map && cached.normalMap && cached.roughnessMap) {
-      // Apply repeat settings each time (room dims can change)
-      __applyTexSettings(cached.map, repeatW, repeatD, true);
-      __applyTexSettings(cached.normalMap, repeatW, repeatD, false);
-      __applyTexSettings(cached.roughnessMap, repeatW, repeatD, false);
+    let cancelled = false;
+    let cloned = { map: null, normalMap: null, roughnessMap: null };
+
+    const setFromBase = (base) => {
+      const map = __clonePreparedTexture(base.map, repeatW, repeatD, true);
+      const normalMap = __clonePreparedTexture(base.normalMap, repeatW, repeatD, false);
+      const roughnessMap = __clonePreparedTexture(base.roughnessMap, repeatW, repeatD, false);
+
+      cloned = { map, normalMap, roughnessMap };
 
       setState({
         ready: true,
         failed: false,
-        map: cached.map,
-        normalMap: cached.normalMap,
-        roughnessMap: cached.roughnessMap,
-        normalScale: cached.normalScale ?? preset.normalScale ?? 0.7,
+        map,
+        normalMap,
+        roughnessMap,
+        normalScale: base.normalScale ?? preset.normalScale ?? 0.7,
       });
-      return;
-    }
+    };
 
-    let cancelled = false;
+    const cached = __realPbrCache.get(materialId);
+    if (cached && cached.map && cached.normalMap && cached.roughnessMap) {
+      setFromBase(cached);
+      return () => {
+        try { cloned.map?.dispose?.(); } catch {}
+        try { cloned.normalMap?.dispose?.(); } catch {}
+        try { cloned.roughnessMap?.dispose?.(); } catch {}
+      };
+    }
 
     const out = { map: null, normalMap: null, roughnessMap: null, normalScale: preset.normalScale ?? 0.7 };
     let ok = 0;
@@ -414,7 +433,6 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
       if (cancelled) return;
 
       if (failed || !out.map || !out.normalMap || !out.roughnessMap) {
-        // dispose partials
         try { out.map?.dispose?.(); } catch {}
         try { out.normalMap?.dispose?.(); } catch {}
         try { out.roughnessMap?.dispose?.(); } catch {}
@@ -422,12 +440,8 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
         return;
       }
 
-      __applyTexSettings(out.map, repeatW, repeatD, true);
-      __applyTexSettings(out.normalMap, repeatW, repeatD, false);
-      __applyTexSettings(out.roughnessMap, repeatW, repeatD, false);
-
       __realPbrCache.set(materialId, out);
-      setState({ ready: true, failed: false, map: out.map, normalMap: out.normalMap, roughnessMap: out.roughnessMap, normalScale: out.normalScale });
+      setFromBase(out);
     };
 
     const loadOne = (key, url) => {
@@ -457,6 +471,9 @@ function useRealPBRSet(materialId, repeatW, repeatD) {
 
     return () => {
       cancelled = true;
+      try { cloned.map?.dispose?.(); } catch {}
+      try { cloned.normalMap?.dispose?.(); } catch {}
+      try { cloned.roughnessMap?.dispose?.(); } catch {}
     };
   }, [materialId, preset, repeatW, repeatD]);
 
@@ -921,7 +938,26 @@ if (userHasOverride) {
 }
 
 
-function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoughnessMap, wallNormalScale, wallRoughnessStrength = 0.9, wallColorTint = "#ffffff", wallEmissiveStrength = 0, wallOpacity, controlsRef, cameraAction }) {
+function Room({
+  roomW,
+  roomD,
+  wallH,
+  showWalls,
+  wallFrontMap,
+  wallFrontNormalMap,
+  wallFrontRoughnessMap,
+  wallFrontNormalScale,
+  wallSideMap,
+  wallSideNormalMap,
+  wallSideRoughnessMap,
+  wallSideNormalScale,
+  wallRoughnessStrength = 0.9,
+  wallColorTint = "#ffffff",
+  wallEmissiveStrength = 0,
+  wallOpacity,
+  controlsRef,
+  cameraAction,
+}) {
   const { camera } = useThree();
 
   // Determine which wall faces the camera the most (auto-hide)
@@ -1020,11 +1056,22 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
 
   if (!showWalls) return null;
 
-  const wallMaterialKey = [
-    wallMap?.uuid || "nomap",
-    wallNormalMap?.uuid || "nonormal",
-    wallRoughnessMap?.uuid || "norough",
-    wallNormalScale || 0.7,
+  const wallFrontMaterialKey = [
+    wallFrontMap?.uuid || "nomap",
+    wallFrontNormalMap?.uuid || "nonormal",
+    wallFrontRoughnessMap?.uuid || "norough",
+    wallFrontNormalScale || 0.7,
+    wallRoughnessStrength,
+    wallColorTint,
+    wallEmissiveStrength,
+    wallOpacity,
+  ].join("|");
+
+  const wallSideMaterialKey = [
+    wallSideMap?.uuid || "nomap",
+    wallSideNormalMap?.uuid || "nonormal",
+    wallSideRoughnessMap?.uuid || "norough",
+    wallSideNormalScale || 0.7,
     wallRoughnessStrength,
     wallColorTint,
     wallEmissiveStrength,
@@ -1034,11 +1081,19 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
 // Important: walls should NOT capture pointer events (fixes "can't move inside walls")
   const noRaycast = () => null;
 
-  const renderWall = (key, props, geomArgs) => {
+  const renderWall = (key, props, geomArgs, surface) => {
     // option 1 + option 3: always keep the camera-facing wall open (hidden)
     if (hiddenWall === key) return null;
+
+    const isFrontSurface = surface === "front";
+    const wallMap = isFrontSurface ? wallFrontMap : wallSideMap;
+    const wallNormalMap = isFrontSurface ? wallFrontNormalMap : wallSideNormalMap;
+    const wallRoughnessMap = isFrontSurface ? wallFrontRoughnessMap : wallSideRoughnessMap;
+    const wallNormalScale = isFrontSurface ? wallFrontNormalScale : wallSideNormalScale;
+    const wallMaterialKey = isFrontSurface ? wallFrontMaterialKey : wallSideMaterialKey;
+
     return (
-      <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast} castShadow receiveShadow>
+      <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast}>
         <boxGeometry args={geomArgs} />
         <meshStandardMaterial
           key={`mat|${key}|${wallMaterialKey}`}
@@ -1061,10 +1116,10 @@ function Room({ roomW, roomD, wallH, showWalls, wallMap, wallNormalMap, wallRoug
 
   return (
     <group>
-      {renderWall("back", { position: [0, wallH / 2, -roomD / 2] }, [roomW, wallH, 0.1])}
-      {renderWall("front", { position: [0, wallH / 2, roomD / 2] }, [roomW, wallH, 0.1])}
-      {renderWall("left", { position: [-roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD])}
-      {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD])}
+      {renderWall("back", { position: [0, wallH / 2, -roomD / 2] }, [roomW, wallH, 0.1], "front")}
+      {renderWall("front", { position: [0, wallH / 2, roomD / 2] }, [roomW, wallH, 0.1], "front")}
+      {renderWall("left", { position: [-roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "side")}
+      {renderWall("right", { position: [roomW / 2, wallH / 2, 0] }, [0.1, wallH, roomD], "side")}
     </group>
   );
 }
@@ -1379,17 +1434,23 @@ const floorRepeatZ = useMemo(() => {
   return Math.max(1, roomD / tileSize);
 }, [effectiveFloorMaterialId, theme, roomD]);
 
-const wallRepeatX = useMemo(() => {
+const wallRepeatFrontX = useMemo(() => {
   const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
   const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
   return Math.max(1, roomW / tileSize);
 }, [effectiveWallMaterialId, theme, roomW]);
 
+const wallRepeatSideX = useMemo(() => {
+  const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
+  const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
+  return Math.max(1, roomD / tileSize);
+}, [effectiveWallMaterialId, theme, roomD]);
+
 const wallRepeatY = useMemo(() => {
   const preset = REAL_PBR_PRESETS[effectiveWallMaterialId];
   const tileSize = preset?.tileSizeM || theme.wall.tileSize || 1;
   return Math.max(1, wallH / tileSize);
-}, [wallMaterialId, theme, wallH]);
+}, [effectiveWallMaterialId, theme, wallH]);
 
 const groundRepeatX = useMemo(() => {
   const preset = REAL_PBR_PRESETS[effectiveGroundMaterialId];
@@ -1404,7 +1465,8 @@ const groundRepeatZ = useMemo(() => {
 }, [effectiveGroundMaterialId, theme, roomD]);
 
 const realFloor = useRealPBRSet(effectiveFloorMaterialId, floorRepeatX, floorRepeatZ);
-const realWall = useRealPBRSet(effectiveWallMaterialId, wallRepeatX, wallRepeatY);
+const realWallFront = useRealPBRSet(effectiveWallMaterialId, wallRepeatFrontX, wallRepeatY);
+const realWallSide = useRealPBRSet(effectiveWallMaterialId, wallRepeatSideX, wallRepeatY);
 const realGround = useRealPBRSet(effectiveGroundMaterialId, groundRepeatX, groundRepeatZ);
 
 const floorPresetRoughness = useMemo(() => {
@@ -1435,6 +1497,11 @@ const wallPresetEmissiveStrength = useMemo(() => {
   return REAL_PBR_PRESETS[effectiveWallMaterialId]?.emissiveStrength ?? 0;
 }, [effectiveWallMaterialId]);
 
+const wallEmissiveStrengthToUse =
+  (realWallFront.ready || realWallSide.ready)
+    ? Math.max(wallPresetEmissiveStrength, 0.08)
+    : wallPresetEmissiveStrength;
+
 
   const floorTex = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.floor.c1, c2: theme.floor.c2, squares: theme.floor.squares });
@@ -1451,25 +1518,44 @@ const wallPresetEmissiveStrength = useMemo(() => {
     };
   }, [floorTex]);
 
-  const wallTex = useMemo(() => {
+  const wallTexFront = useMemo(() => {
     const t = makeCheckerTexture({ c1: theme.wall.c1, c2: theme.wall.c2, squares: theme.wall.squares });
     const repsX = Math.max(1, roomW / theme.wall.tileSize);
-    const repsZ = Math.max(1, roomD / theme.wall.tileSize);
-    t.repeat.set(repsX, repsZ);
+    const repsY = Math.max(1, wallH / theme.wall.tileSize);
+    t.repeat.set(repsX, repsY);
     return t;
-  }, [theme, roomW, roomD]);
+  }, [theme, roomW, wallH]);
 
   useEffect(() => {
     return () => {
-      try { wallTex?.dispose?.(); } catch {}
+      try { wallTexFront?.dispose?.(); } catch {}
     };
-  }, [wallTex]);
+  }, [wallTexFront]);
+
+  const wallTexSide = useMemo(() => {
+    const t = makeCheckerTexture({ c1: theme.wall.c1, c2: theme.wall.c2, squares: theme.wall.squares });
+    const repsX = Math.max(1, roomD / theme.wall.tileSize);
+    const repsY = Math.max(1, wallH / theme.wall.tileSize);
+    t.repeat.set(repsX, repsY);
+    return t;
+  }, [theme, roomD, wallH]);
+
+  useEffect(() => {
+    return () => {
+      try { wallTexSide?.dispose?.(); } catch {}
+    };
+  }, [wallTexSide]);
 
 
-const wallMapToUse = realWall.ready ? realWall.map : wallTex;
-const wallNormalToUse = realWall.ready ? realWall.normalMap : null;
-const wallRoughToUse = realWall.ready ? realWall.roughnessMap : null;
-const wallNormalScaleToUse = realWall.ready ? realWall.normalScale : 0.7;
+const wallFrontMapToUse = realWallFront.ready ? realWallFront.map : wallTexFront;
+const wallFrontNormalToUse = realWallFront.ready ? realWallFront.normalMap : null;
+const wallFrontRoughToUse = realWallFront.ready ? realWallFront.roughnessMap : null;
+const wallFrontNormalScaleToUse = realWallFront.ready ? realWallFront.normalScale * 0.28 : 0.7;
+
+const wallSideMapToUse = realWallSide.ready ? realWallSide.map : wallTexSide;
+const wallSideNormalToUse = realWallSide.ready ? realWallSide.normalMap : null;
+const wallSideRoughToUse = realWallSide.ready ? realWallSide.roughnessMap : null;
+const wallSideNormalScaleToUse = realWallSide.ready ? realWallSide.normalScale * 0.28 : 0.7;
 
 
   if (!__webglOk) {
@@ -1555,7 +1641,26 @@ return (
         </mesh>
 
         {/* Room walls */}
-        <Room roomW={roomW} roomD={roomD} wallH={wallH} showWalls={showWalls} wallMap={wallMapToUse} wallNormalMap={wallNormalToUse} wallRoughnessMap={wallRoughToUse} wallNormalScale={wallNormalScaleToUse} wallRoughnessStrength={wallPresetRoughness} wallColorTint={wallPresetColorTint} wallEmissiveStrength={wallPresetEmissiveStrength} wallOpacity={(!isGardenTemplate && realWall.ready && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity} controlsRef={controlsRef} cameraAction={cameraAction} />
+        <Room
+          roomW={roomW}
+          roomD={roomD}
+          wallH={wallH}
+          showWalls={showWalls}
+          wallFrontMap={wallFrontMapToUse}
+          wallFrontNormalMap={wallFrontNormalToUse}
+          wallFrontRoughnessMap={wallFrontRoughToUse}
+          wallFrontNormalScale={wallFrontNormalScaleToUse}
+          wallSideMap={wallSideMapToUse}
+          wallSideNormalMap={wallSideNormalToUse}
+          wallSideRoughnessMap={wallSideRoughToUse}
+          wallSideNormalScale={wallSideNormalScaleToUse}
+          wallRoughnessStrength={wallPresetRoughness}
+          wallColorTint={wallPresetColorTint}
+          wallEmissiveStrength={wallEmissiveStrengthToUse}
+          wallOpacity={(!isGardenTemplate && (realWallFront.ready || realWallSide.ready) && effectiveWallMaterialId !== "default") ? 1 : theme.wall.opacity}
+          controlsRef={controlsRef}
+          cameraAction={cameraAction}
+        />
 
 
         {/* Blocks */}
