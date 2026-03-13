@@ -1122,7 +1122,7 @@ function Room({
     const wallMaterialKey = isFrontSurface ? wallFrontMaterialKey : (isLeftSurface ? wallLeftMaterialKey : wallRightMaterialKey);
 
     return (
-      <mesh key={`${key}|${wallMaterialKey}`} castShadow receiveShadow {...props} raycast={noRaycast}>
+      <mesh key={`${key}|${wallMaterialKey}`} {...props} raycast={noRaycast}>
         <boxGeometry args={geomArgs} />
         <meshStandardMaterial
           key={`mat|${key}|${wallMaterialKey}`}
